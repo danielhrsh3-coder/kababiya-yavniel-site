@@ -111,87 +111,95 @@
     <div class="section-inner">
       <h2 class="section-title">תפריט</h2>
 
-      <div class="menu-group menu-group-main">
+      <div class="menu-tabs" role="tablist" aria-label="קטגוריות בתפריט">
+        <button type="button" class="menu-tab is-active" role="tab" aria-selected="true" data-filter="all">הכל</button>
+        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="grill">על האש</button>
+        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="hummus">חומוס ופלאפל</button>
+        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="sides">תוספות וסלטים</button>
+        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="drinks">שתייה</button>
+      </div>
+
+      <div class="menu-group menu-group-main" data-cat="grill hummus">
         <h3>מנות עיקריות</h3>
         <div class="menu-dish-list">
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="hummus">
             <div class="menu-dish-img placeholder"><span>חומוס</span></div>
             <div class="menu-dish-info">
               <span class="menu-dish-name">חומוס פשוט / עם גרגירי חומוס</span>
               <span class="price">35 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="hummus">
             <div class="menu-dish-img placeholder"><span>חומוס</span></div>
             <div class="menu-dish-info">
               <span class="menu-dish-name">חומוס עם תוספת בשר / פטריות / רצועות עוף</span>
               <span class="price">45 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="hummus">
             <div class="menu-dish-img placeholder"><span>פלאפל</span></div>
             <div class="menu-dish-info">
               <span class="menu-dish-name">פלאפל בפיתה</span>
               <span class="price">18 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="hummus">
             <div class="menu-dish-img placeholder"><span>פלאפל</span></div>
             <div class="menu-dish-info">
               <span class="menu-dish-name">פלאפל + ציפס + שתייה</span>
               <span class="price">25 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="grill">
             <img src="images/burger.jpg" alt="המבורגר" loading="lazy" class="menu-dish-img">
             <div class="menu-dish-info">
               <span class="menu-dish-name">המבורגר <em>(קציצה נוספת +10 ₪)</em></span>
               <span class="price">45 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="grill">
             <img src="images/arayes.jpg" alt="עראייס" loading="lazy" class="menu-dish-img">
             <div class="menu-dish-info">
               <span class="menu-dish-name">עראייס</span>
               <span class="price">42 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="grill">
             <img src="images/kababiya.jpg" alt="מנת הקבביה" loading="lazy" class="menu-dish-img">
             <div class="menu-dish-info">
               <span class="menu-dish-name">מנת "הקבביה"</span>
               <span class="price">42 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="grill">
             <div class="menu-dish-img placeholder"><span>קבב</span></div>
             <div class="menu-dish-info">
               <span class="menu-dish-name">קבב בפיתה / בבגט / בצלחת</span>
               <span class="price">42 / 50 / 55 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="grill">
             <div class="menu-dish-img placeholder"><span>אנטריקוט</span></div>
             <div class="menu-dish-info">
               <span class="menu-dish-name">אנטריקוט בפיתה / בבגט</span>
               <span class="price">42 / 50 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="grill">
             <img src="images/chicken.jpg" alt="חזה עוף" loading="lazy" class="menu-dish-img">
             <div class="menu-dish-info">
               <span class="menu-dish-name">חזה עוף בפיתה / בבגט / בצלחת</span>
               <span class="price">42 / 50 / 55 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="grill">
             <img src="images/schnitzel.jpg" alt="שניצל" loading="lazy" class="menu-dish-img">
             <div class="menu-dish-info">
               <span class="menu-dish-name">שניצל בפיתה / בבגט / בצלחת</span>
               <span class="price">42 / 50 / 55 ₪</span>
             </div>
           </div>
-          <div class="menu-dish">
+          <div class="menu-dish" data-cat="grill">
             <img src="images/merguez.jpg" alt="נקנקיות מרגז" loading="lazy" class="menu-dish-img">
             <div class="menu-dish-info">
               <span class="menu-dish-name">נקנקיות מרגז</span>
@@ -202,13 +210,16 @@
       </div>
 
       <div class="menu-groups">
-        <div class="menu-group">
+        <div class="menu-group" data-cat="sides">
           <h3>תוספות</h3>
           <ul class="menu-list">
             <li><span>ציפס</span><span class="price">12 ₪</span></li>
             <li><span>טבעות בצל</span><span class="price">15 ₪</span></li>
             <li><span>מיקס טבעות בצל וציפס</span><span class="price">20 ₪</span></li>
           </ul>
+        </div>
+
+        <div class="menu-group" data-cat="drinks">
           <h3>שתייה</h3>
           <ul class="menu-list">
             <li><span>שתייה קלה</span><span class="price">7 ₪</span></li>
@@ -216,7 +227,7 @@
           </ul>
         </div>
 
-        <div class="menu-group">
+        <div class="menu-group" data-cat="sides">
           <h3>סלטים</h3>
           <p class="menu-tags">עגבניות · מלפפונים · חמוצים · חסה · סלט חריף · מטבוחה · חומוס · בצל · חריף · כרוב לבן</p>
           <h3>רטבים</h3>
@@ -323,6 +334,47 @@
     <span>ניווט</span>
   </a>
 </nav>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('.menu-tab');
+  var dishes = document.querySelectorAll('.menu-dish');
+  var groups = document.querySelectorAll('.menu-group[data-cat]');
+
+  function matches(el, filter) {
+    return filter === 'all' || el.dataset.cat.split(' ').indexOf(filter) !== -1;
+  }
+
+  function apply(filter) {
+    dishes.forEach(function (dish) {
+      dish.hidden = !matches(dish, filter);
+    });
+    // hide a whole group once nothing inside it is left showing
+    groups.forEach(function (group) {
+      var own = matches(group, filter);
+      var list = group.querySelector('.menu-dish-list');
+      if (list) {
+        own = Array.prototype.some.call(
+          list.querySelectorAll('.menu-dish'),
+          function (d) { return !d.hidden; }
+        );
+      }
+      group.hidden = !own;
+    });
+    tabs.forEach(function (tab) {
+      var on = tab.dataset.filter === filter;
+      tab.classList.toggle('is-active', on);
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      apply(tab.dataset.filter);
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
