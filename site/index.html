@@ -115,7 +115,7 @@
         <button type="button" class="menu-tab is-active" role="tab" aria-selected="true" data-filter="all">הכל</button>
         <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="grill">על האש</button>
         <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="hummus">חומוס ופלאפל</button>
-        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="sides">תוספות וסלטים</button>
+        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="sides">תוספות</button>
         <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="drinks">שתייה</button>
       </div>
 
@@ -209,6 +209,23 @@
         </div>
       </div>
 
+      <div class="fillings" data-cat="grill hummus">
+        <p class="fillings-lead">
+          <span class="fillings-icon" aria-hidden="true">🥗</span>
+          כל מנה בפיתה או בבגט &mdash; אתם בוחרים מה נכנס פנימה, ללא תוספת תשלום
+        </p>
+        <div class="fillings-cols">
+          <div class="fillings-col">
+            <h4>סלטים</h4>
+            <p class="menu-tags">עגבניות · מלפפונים · חמוצים · חסה · סלט חריף · מטבוחה · חומוס · בצל · חריף · כרוב לבן</p>
+          </div>
+          <div class="fillings-col">
+            <h4>רטבים</h4>
+            <p class="menu-tags">שום · אלף האיים · שזיפים · צ'ילי מתוק · עמבה · ברביקיו · מיונז · טחינה · קטשופ</p>
+          </div>
+        </div>
+      </div>
+
       <div class="menu-groups">
         <div class="menu-group" data-cat="sides">
           <h3>תוספות</h3>
@@ -225,13 +242,6 @@
             <li><span>שתייה קלה</span><span class="price">7 ₪</span></li>
             <li><span>בירה</span><span class="price">10 ₪</span></li>
           </ul>
-        </div>
-
-        <div class="menu-group" data-cat="sides">
-          <h3>סלטים</h3>
-          <p class="menu-tags">עגבניות · מלפפונים · חמוצים · חסה · סלט חריף · מטבוחה · חומוס · בצל · חריף · כרוב לבן</p>
-          <h3>רטבים</h3>
-          <p class="menu-tags">שום · אלף האיים · שזיפים · צ'ילי מתוק · עמבה · ברביקיו · מיונז · טחינה · קטשופ</p>
         </div>
       </div>
     </div>
@@ -339,7 +349,7 @@
 (function () {
   var tabs = document.querySelectorAll('.menu-tab');
   var dishes = document.querySelectorAll('.menu-dish');
-  var groups = document.querySelectorAll('.menu-group[data-cat]');
+  var groups = document.querySelectorAll('.menu-group[data-cat], .fillings[data-cat]');
 
   function matches(el, filter) {
     return filter === 'all' || el.dataset.cat.split(' ').indexOf(filter) !== -1;
