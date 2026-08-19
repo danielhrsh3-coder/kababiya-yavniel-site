@@ -21,6 +21,11 @@
     </nav>
     <a href="#top" class="brand"><img src="images/logo.jpg" alt="הקבביה ביבניאל" class="brand-logo"></a>
     <nav class="main-nav main-nav-side">
+      <a href="#location" class="open-badge" id="open-badge" hidden>
+        <span class="open-dot" aria-hidden="true"></span>
+        <span class="open-label"></span>
+        <span class="open-detail"></span>
+      </a>
       <a href="#location">הגעה</a>
       <a href="#contact" class="nav-cta">הזמנה</a>
     </nav>
@@ -281,7 +286,15 @@
       <h2 class="section-title">הוראות הגעה</h2>
       <div class="location-content">
         <div class="location-info">
-          <p><strong>שעות פתיחה:</strong> 12:00–22:00</p>
+          <!-- שעות הפתיחה כאן חייבות להישאר תואמות ל-SCHEDULE שבסקריפט בתחתית העמוד -->
+          <table class="hours-table">
+            <caption>שעות פתיחה</caption>
+            <tbody>
+              <tr><th scope="row">ראשון &ndash; חמישי</th><td>12:00&ndash;22:00</td></tr>
+              <tr><th scope="row">שישי</th><td class="is-closed">סגור</td></tr>
+              <tr><th scope="row">שבת</th><td class="is-closed">סגור</td></tr>
+            </tbody>
+          </table>
           <p><strong>משלוחים:</strong> ביבניאל והסביבה</p>
           <div class="location-actions">
             <a href="https://ul.waze.com/ul?venue_id=23265607.232721607.2099497&overview=yes&utm_campaign=default&utm_source=waze_website&utm_medium=lm_share_location" target="_blank" rel="noopener" class="btn btn-waze">
@@ -383,6 +396,89 @@
       apply(tab.dataset.filter);
     });
   });
+})();
+
+/* באדג' "פתוח עכשיו" - מחושב לפי שעון ישראל, כך שגם גולש מחו"ל רואה סטטוס נכון.
+   שינוי שעות? לעדכן גם את הטבלה בסקשן "הוראות הגעה". */
+(function () {
+  var SCHEDULE = {
+    0: [720, 1320], // ראשון  12:00-22:00
+    1: [720, 1320], // שני
+    2: [720, 1320], // שלישי
+    3: [720, 1320], // רביעי
+    4: [720, 1320], // חמישי
+    5: null,        // שישי - סגור
+    6: null         // שבת  - סגור
+  };
+  var DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  var DAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+  var badge = document.getElementById('open-badge');
+  if (!badge) return;
+  var labelEl = badge.querySelector('.open-label');
+  var detailEl = badge.querySelector('.open-detail');
+
+  function israelNow() {
+    var parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Jerusalem',
+      hour12: false,
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).formatToParts(new Date());
+    var get = function (type) {
+      var p = parts.find(function (x) { return x.type === type; });
+      return p ? p.value : null;
+    };
+    var hour = parseInt(get('hour'), 10);
+    return {
+      day: DAY_INDEX[get('weekday')],
+      minutes: (hour === 24 ? 0 : hour) * 60 + parseInt(get('minute'), 10)
+    };
+  }
+
+  function pad(mins) {
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return h + ':' + (m < 10 ? '0' + m : m);
+  }
+
+  function nextOpening(day, minutes) {
+    // היום, אם עוד לא נפתחנו; אחרת היום הפתוח הבא בשבוע
+    for (var i = 0; i < 8; i++) {
+      var d = (day + i) % 7;
+      var hours = SCHEDULE[d];
+      if (!hours) continue;
+      if (i === 0 && minutes >= hours[0]) continue;
+      return { day: d, at: hours[0], today: i === 0 };
+    }
+    return null;
+  }
+
+  function render() {
+    var now = israelNow();
+    if (now.day === undefined || isNaN(now.minutes)) return;
+
+    var today = SCHEDULE[now.day];
+    var isOpen = today && now.minutes >= today[0] && now.minutes < today[1];
+
+    if (isOpen) {
+      badge.classList.add('is-open');
+      labelEl.textContent = 'פתוח עכשיו';
+      detailEl.textContent = '· עד ' + pad(today[1]);
+    } else {
+      badge.classList.remove('is-open');
+      var next = nextOpening(now.day, now.minutes);
+      labelEl.textContent = 'סגור';
+      detailEl.textContent = next
+        ? (next.today ? '· נפתח ב-' + pad(next.at)
+                      : '· נפתח ב' + DAY_NAMES[next.day] + ' ' + pad(next.at))
+        : '';
+    }
+    badge.hidden = false;
+  }
+
+  render();
+  setInterval(render, 60000);
 })();
 </script>
 
