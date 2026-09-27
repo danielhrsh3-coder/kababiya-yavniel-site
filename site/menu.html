@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>תפריט | הקבביה ביבניאל</title>
+<meta name="description" content="התפריט המלא של הקבביה ביבניאל - קבב, המבורגר, שניצל, חומוס ועוד. כשר למהדרין.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Suez+One&family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .menu-only-header {
+    text-align: center;
+    padding: 22px 20px 6px;
+  }
+  .menu-only-header .brand-logo {
+    height: 64px;
+    width: auto;
+    border-radius: 10px;
+  }
+  .menu-only-header .open-badge {
+    margin-top: 14px;
+  }
+  .back-to-site {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    font-size: 13.5px;
+    color: #aaa;
+  }
+  .back-to-site:hover { color: var(--gold-light); }
+  main { padding-bottom: 40px; }
+</style>
+</head>
+<body>
+
+<header class="menu-only-header">
+  <a href="index.html"><img src="images/logo.jpg" alt="הקבביה ביבניאל" class="brand-logo"></a>
+  <a href="index.html#location" class="open-badge" id="open-badge" hidden>
+    <span class="open-dot" aria-hidden="true"></span>
+    <span class="open-label"></span>
+    <span class="open-detail"></span>
+  </a>
+  <div>
+    <a href="index.html" class="back-to-site">&larr; לאתר המלא</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="menu" id="menu">
+    <div class="section-inner">
+      <h2 class="section-title">תפריט</h2>
+
+      <div class="menu-tabs" role="tablist" aria-label="קטגוריות בתפריט">
+        <button type="button" class="menu-tab is-active" role="tab" aria-selected="true" data-filter="all">הכל</button>
+        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="grill">על האש</button>
+        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="hummus">חומוס ופלאפל</button>
+        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="sides">תוספות</button>
+        <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="drinks">שתייה</button>
+      </div>
+
+      <div class="menu-group menu-group-main" data-cat="grill hummus">
+        <h3>מנות עיקריות</h3>
+        <div class="menu-dish-list">
+          <div class="menu-dish" data-cat="hummus">
+            <div class="menu-dish-img placeholder placeholder-hummus" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><path d="M4 11a8 8 0 0 1 16 0v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1zm-1 4h18v2a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2z"/></svg>
+            </div>
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">חומוס פשוט / עם גרגירי חומוס</span>
+              <span class="price">35 ₪</span>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="hummus">
+            <div class="menu-dish-img placeholder placeholder-hummus" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><path d="M4 11a8 8 0 0 1 16 0v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1zm-1 4h18v2a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2z"/></svg>
+            </div>
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">חומוס עם תוספת בשר / פטריות / רצועות עוף</span>
+              <span class="price">45 ₪</span>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="hummus">
+            <div class="menu-dish-img placeholder placeholder-falafel" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><circle cx="7" cy="8" r="2.4"/><circle cx="13" cy="6.5" r="2.4"/><circle cx="17.5" cy="10.5" r="2.4"/><circle cx="9" cy="13.5" r="2.4"/><circle cx="14.5" cy="15" r="2.4"/></svg>
+            </div>
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">פלאפל בפיתה</span>
+              <span class="price">18 ₪</span>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="hummus">
+            <div class="menu-dish-img placeholder placeholder-falafel" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><circle cx="7" cy="8" r="2.4"/><circle cx="13" cy="6.5" r="2.4"/><circle cx="17.5" cy="10.5" r="2.4"/><circle cx="9" cy="13.5" r="2.4"/><circle cx="14.5" cy="15" r="2.4"/></svg>
+            </div>
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">פלאפל + ציפס + שתייה</span>
+              <span class="price">25 ₪</span>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="grill">
+            <img src="images/burger.jpg" alt="המבורגר" loading="lazy" class="menu-dish-img">
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">המבורגר <em>(קציצה נוספת +10 ₪)</em></span>
+              <span class="price">45 ₪</span>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="grill">
+            <img src="images/arayes.jpg" alt="עראייס" loading="lazy" class="menu-dish-img">
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">עראייס</span>
+              <span class="price">42 ₪</span>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="grill">
+            <img src="images/kababiya.jpg" alt="מנת הקבביה" loading="lazy" class="menu-dish-img">
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">מנת "הקבביה"</span>
+              <span class="price">42 ₪</span>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="grill">
+            <div class="menu-dish-img placeholder placeholder-kabab" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><path d="M4 3c-.55 0-1 .45-1 1s.45 1 1 1h1v11a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V5h1c.55 0 1-.45 1-1s-.45-1-1-1H4zm4 4h2v9H8V7zm4 0h2v9h-2V7zm4 0h2v9h-2V7z"/></svg>
+            </div>
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">קבב</span>
+              <ul class="price-options">
+                <li>פיתה <span class="price">42 ₪</span></li>
+                <li>בגט <span class="price">50 ₪</span></li>
+                <li>צלחת <span class="price">55 ₪</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="grill">
+            <div class="menu-dish-img placeholder placeholder-entrecote" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><path d="M4 3c-.55 0-1 .45-1 1s.45 1 1 1h1v11a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V5h1c.55 0 1-.45 1-1s-.45-1-1-1H4zm4 4h2v9H8V7zm4 0h2v9h-2V7zm4 0h2v9h-2V7z"/></svg>
+            </div>
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">אנטריקוט</span>
+              <ul class="price-options">
+                <li>פיתה <span class="price">42 ₪</span></li>
+                <li>בגט <span class="price">50 ₪</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="grill">
+            <img src="images/chicken.jpg" alt="חזה עוף" loading="lazy" class="menu-dish-img">
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">חזה עוף</span>
+              <ul class="price-options">
+                <li>פיתה <span class="price">42 ₪</span></li>
+                <li>בגט <span class="price">50 ₪</span></li>
+                <li>צלחת <span class="price">55 ₪</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="grill">
+            <img src="images/schnitzel.jpg" alt="שניצל" loading="lazy" class="menu-dish-img">
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">שניצל</span>
+              <ul class="price-options">
+                <li>פיתה <span class="price">42 ₪</span></li>
+                <li>בגט <span class="price">50 ₪</span></li>
+                <li>צלחת <span class="price">55 ₪</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="menu-dish" data-cat="grill">
+            <img src="images/merguez.jpg" alt="נקנקיות מרגז" loading="lazy" class="menu-dish-img">
+            <div class="menu-dish-info">
+              <span class="menu-dish-name">נקנקיות מרגז</span>
+              <span class="price">42 ₪</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fillings" data-cat="grill hummus">
+        <p class="fillings-lead">
+          <span class="fillings-icon" aria-hidden="true">🥗</span>
+          כל מנה בפיתה או בבגט &mdash; אתם בוחרים מה נכנס פנימה, ללא תוספת תשלום
+        </p>
+        <div class="fillings-cols">
+          <div class="fillings-col">
+            <h4>סלטים</h4>
+            <p class="menu-tags">עגבניות · מלפפונים · חמוצים · חסה · סלט חריף · מטבוחה · חומוס · בצל · חריף · כרוב לבן</p>
+          </div>
+          <div class="fillings-col">
+            <h4>רטבים</h4>
+            <p class="menu-tags">שום · אלף האיים · שזיפים · צ'ילי מתוק · עמבה · ברביקיו · מיונז · טחינה · קטשופ</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-groups">
+        <div class="menu-group" data-cat="sides">
+          <h3>תוספות</h3>
+          <ul class="menu-list">
+            <li><span>ציפס</span><span class="price">12 ₪</span></li>
+            <li><span>טבעות בצל</span><span class="price">15 ₪</span></li>
+            <li><span>מיקס טבעות בצל וציפס</span><span class="price">20 ₪</span></li>
+          </ul>
+        </div>
+
+        <div class="menu-group" data-cat="drinks">
+          <h3>שתייה</h3>
+          <ul class="menu-list">
+            <li><span>שתייה קלה</span><span class="price">7 ₪</span></li>
+            <li><span>בירה</span><span class="price">10 ₪</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="action-bar" aria-label="פעולות מהירות">
+  <a href="tel:0547999769" class="action-bar-btn">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.24.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>
+    <span>חיוג</span>
+  </a>
+  <a href="https://wa.me/972547999769" target="_blank" rel="noopener" class="action-bar-btn action-bar-btn-whatsapp">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.004c5.46 0 9.91-4.45 9.91-9.91C21.97 6.45 17.5 2 12.04 2zm0 18.13h-.003a8.2 8.2 0 0 1-4.18-1.14l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.37c0-4.53 3.69-8.22 8.23-8.22 2.2 0 4.26.86 5.82 2.41a8.17 8.17 0 0 1 2.41 5.82c0 4.54-3.69 8.21-8.2 8.21zm4.51-6.15c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.13-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.71-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31s-.87.85-.87 2.08.89 2.41 1.02 2.58c.12.17 1.75 2.68 4.25 3.75.59.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.19.21-.58.21-1.08.14-1.19-.06-.11-.23-.17-.48-.29z"/></svg>
+    <span>וואטסאפ</span>
+  </a>
+  <a href="https://ul.waze.com/ul?venue_id=23265607.232721607.2099497&overview=yes&utm_campaign=default&utm_source=waze_website&utm_medium=lm_share_location" target="_blank" rel="noopener" class="action-bar-btn">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12 2C7.86 2 4.5 5.36 4.5 9.5c0 5.5 6.44 11.68 7.06 12.26a.6.6 0 0 0 .88 0c.62-.58 7.06-6.76 7.06-12.26C19.5 5.36 16.14 2 12 2zm0 10.25a2.75 2.75 0 1 1 0-5.5 2.75 2.75 0 0 1 0 5.5z"/></svg>
+    <span>ניווט</span>
+  </a>
+</nav>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('.menu-tab');
+  var dishes = document.querySelectorAll('.menu-dish');
+  var groups = document.querySelectorAll('.menu-group[data-cat], .fillings[data-cat]');
+
+  function matches(el, filter) {
+    return filter === 'all' || el.dataset.cat.split(' ').indexOf(filter) !== -1;
+  }
+
+  function apply(filter) {
+    dishes.forEach(function (dish) {
+      dish.hidden = !matches(dish, filter);
+    });
+    groups.forEach(function (group) {
+      var own = matches(group, filter);
+      var list = group.querySelector('.menu-dish-list');
+      if (list) {
+        own = Array.prototype.some.call(
+          list.querySelectorAll('.menu-dish'),
+          function (d) { return !d.hidden; }
+        );
+      }
+      group.hidden = !own;
+    });
+    tabs.forEach(function (tab) {
+      var on = tab.dataset.filter === filter;
+      tab.classList.toggle('is-active', on);
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      apply(tab.dataset.filter);
+    });
+  });
+})();
+
+(function () {
+  var SCHEDULE = {
+    0: [720, 1320],
+    1: [720, 1320],
+    2: [720, 1320],
+    3: [720, 1320],
+    4: [720, 1320],
+    5: null,
+    6: null
+  };
+  var DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  var DAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+  var badge = document.getElementById('open-badge');
+  if (!badge) return;
+  var labelEl = badge.querySelector('.open-label');
+  var detailEl = badge.querySelector('.open-detail');
+
+  function israelNow() {
+    var parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Jerusalem',
+      hour12: false,
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).formatToParts(new Date());
+    var get = function (type) {
+      var p = parts.find(function (x) { return x.type === type; });
+      return p ? p.value : null;
+    };
+    var hour = parseInt(get('hour'), 10);
+    return {
+      day: DAY_INDEX[get('weekday')],
+      minutes: (hour === 24 ? 0 : hour) * 60 + parseInt(get('minute'), 10)
+    };
+  }
+
+  function pad(mins) {
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return h + ':' + (m < 10 ? '0' + m : m);
+  }
+
+  function nextOpening(day, minutes) {
+    for (var i = 0; i < 8; i++) {
+      var d = (day + i) % 7;
+      var hours = SCHEDULE[d];
+      if (!hours) continue;
+      if (i === 0 && minutes >= hours[0]) continue;
+      return { day: d, at: hours[0], today: i === 0 };
+    }
+    return null;
+  }
+
+  function render() {
+    var now = israelNow();
+    if (now.day === undefined || isNaN(now.minutes)) return;
+
+    var today = SCHEDULE[now.day];
+    var isOpen = today && now.minutes >= today[0] && now.minutes < today[1];
+
+    if (isOpen) {
+      badge.classList.add('is-open');
+      labelEl.textContent = 'פתוח עכשיו';
+      detailEl.textContent = '· עד ' + pad(today[1]);
+    } else {
+      badge.classList.remove('is-open');
+      var next = nextOpening(now.day, now.minutes);
+      labelEl.textContent = 'סגור';
+      detailEl.textContent = next
+        ? (next.today ? '· נפתח ב-' + pad(next.at)
+                      : '· נפתח ב' + DAY_NAMES[next.day] + ' ' + pad(next.at))
+        : '';
+    }
+    badge.hidden = false;
+  }
+
+  render();
+  setInterval(render, 60000);
+})();
+</script>
+
+</body>
+</html>
