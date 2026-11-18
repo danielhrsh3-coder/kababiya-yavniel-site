@@ -243,3 +243,26 @@ body.ed-on .site-popup { z-index: 1100; }
 
 /* הפס מופיע ממש מעל התפריט, כדי שיראו אותו מיד בכניסה */
 .menu > .ed-ribbon { margin: 0; }
+
+/* ---------- חוות דעת ---------- */
+.ed-on .review-card { position: relative; }
+.review-card .ed-pencil { position: absolute; top: 10px; left: 10px; width: 42px; height: 42px; }
+.ed-on .review-card.is-off { opacity: .5; border-style: dashed; }
+.review-card .dish-tag { display: inline-block; margin-top: 8px; }
+.ed-stars { display: flex; gap: 6px; }
+.ed-star {
+  width: 54px; height: 54px; border-radius: 12px;
+  border: 2px solid #5a5045; background: #0d0b09; color: #5a5045;
+  font-size: 28px; line-height: 1; cursor: pointer;
+}
+.ed-star.is-on { color: var(--gold); border-color: var(--gold); background: #241b0c; }
+.ed-source-quick { margin-top: 10px; }
+
+/* ---------- ספיישל: טווח תאריכים ---------- */
+.ed-date .ed-date-pick { display: block; margin-top: 12px; font-size: 16px; }
+.ed-date .ed-date-pick span { display: block; font-weight: 700; margin-bottom: 6px; }
+.ed-date .ed-date-pick small { font-weight: 400; color: #a79f93; }
+.ed-date .ed-date-pick .ed-input { width: 100%; min-width: 0; flex: none; direction: ltr; }
+
+/* ---------- תמונה בהודעה הקופצת ---------- */
+.ed-photo-rect { width: 150px; height: 110px; border-radius: 12px; }

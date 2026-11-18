@@ -73,6 +73,7 @@
     popup_enabled: false,
     popup_text: '',
     popup_until: null,
+    popup_image: '',
     salads: 'עגבניות · מלפפונים · חמוצים · חסה · סלט חריף · מטבוחה · חומוס · בצל · חריף · כרוב לבן',
     sauces: 'שום · אלף האיים · שזיפים · צ\'ילי מתוק · עמבה · ברביקיו · מיונז · טחינה · קטשופ'
   };
@@ -89,7 +90,22 @@
       prices: prices.map(function (x) { return { label: (x && x.label) || '', price: x ? x.price : '' }; }),
       sort: typeof d.sort === 'number' ? d.sort : (i + 1) * 10,
       visible: d.visible !== false,
-      special_date: d.special_date || null
+      special_date: d.special_date || null,
+      special_until: d.special_until || null
+    };
+  }
+
+  /* חוות דעת על העסק. בכוונה אין ציטוטים לדוגמה: אם אין חוות דעת, הסקשן לא מוצג */
+  function normReview(r, i) {
+    var stars = Number(r.stars);
+    return {
+      id: r.id,
+      author: r.author || '',
+      text: r.text || '',
+      stars: stars >= 1 && stars <= 5 ? Math.round(stars) : 5,
+      source: r.source || '',
+      sort: typeof r.sort === 'number' ? r.sort : (i + 1) * 10,
+      visible: r.visible !== false
     };
   }
 
@@ -114,13 +130,23 @@
     return 'd_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
 
-  var DISH_FIELDS = ['cat', 'name', 'note', 'image', 'placeholder', 'prices', 'sort', 'visible', 'special_date'];
+  var DISH_FIELDS = ['cat', 'name', 'note', 'image', 'placeholder', 'prices', 'sort', 'visible', 'special_date', 'special_until'];
   function dishBody(d) {
     var o = {};
     DISH_FIELDS.forEach(function (k) { o[k] = d[k]; });
-    if (!o.special_date) o.special_date = null;
+    if (!o.special_date) { o.special_date = null; o.special_until = null; }
+    if (!o.special_until) o.special_until = null;
     return o;
   }
+
+  var REVIEW_FIELDS = ['author', 'text', 'stars', 'source', 'sort', 'visible'];
+  function reviewBody(r) {
+    var o = {};
+    REVIEW_FIELDS.forEach(function (k) { o[k] = r[k]; });
+    return o;
+  }
+
+  function isNewId(id) { return !id || /^(seed-|new-)/.test(id); }
 
   /* ======================================================================
      מצב חי: Supabase דרך REST
@@ -210,11 +236,16 @@
   function liveLoad() {
     return Promise.all([
       rest('GET', '/rest/v1/dishes?select=*&order=sort.asc,created_at.asc'),
-      rest('GET', '/rest/v1/site_settings?id=eq.1&select=*')
+      rest('GET', '/rest/v1/site_settings?id=eq.1&select=*'),
+      rest('GET', '/rest/v1/reviews?select=*&order=sort.asc,created_at.asc').catch(function (e) {
+        if (e && e.auth) throw e;
+        return [];
+      })
     ]).then(function (r) {
       var data = {
         dishes: (r[0] || []).map(normDish),
-        settings: mergeSettings(r[1] && r[1][0])
+        settings: mergeSettings(r[1] && r[1][0]),
+        reviews: (r[2] || []).map(normReview)
       };
       lsSet('cache', data);
       return data;
@@ -222,7 +253,7 @@
   }
 
   function liveSaveDish(d) {
-    var isNew = !d.id || /^(seed-|new-)/.test(d.id);
+    var isNew = isNewId(d.id);
     var req = isNew
       ? rest('POST', '/rest/v1/dishes', dishBody(d), { Prefer: 'return=representation' })
       : rest('PATCH', '/rest/v1/dishes?id=eq.' + encodeURIComponent(d.id), dishBody(d), { Prefer: 'return=representation' });
@@ -237,12 +268,28 @@
     return rest('DELETE', '/rest/v1/dishes?id=eq.' + encodeURIComponent(id), undefined, { Prefer: 'return=minimal' });
   }
 
+  function liveSaveReview(r) {
+    var req = isNewId(r.id)
+      ? rest('POST', '/rest/v1/reviews', reviewBody(r), { Prefer: 'return=representation' })
+      : rest('PATCH', '/rest/v1/reviews?id=eq.' + encodeURIComponent(r.id), reviewBody(r), { Prefer: 'return=representation' });
+    return req.then(function (rows) {
+      var row = Array.isArray(rows) ? rows[0] : rows;
+      if (!row) throw new Error('השמירה לא אושרה על ידי השרת');
+      return normReview(row);
+    });
+  }
+
+  function liveDeleteReview(id) {
+    return rest('DELETE', '/rest/v1/reviews?id=eq.' + encodeURIComponent(id), undefined, { Prefer: 'return=minimal' });
+  }
+
   function liveSaveSettings(s) {
     var body = {
       id: 1,
       popup_enabled: !!s.popup_enabled,
       popup_text: s.popup_text || '',
       popup_until: s.popup_until || null,
+      popup_image: s.popup_image || '',
       salads: s.salads,
       sauces: s.sauces
     };
@@ -291,9 +338,10 @@
      ====================================================================== */
   function demoState() {
     var s = lsGet('demo');
-    if (!s) s = { dishes: seedDishes(), settings: clone(DEFAULT_SETTINGS) };
+    if (!s) s = { dishes: seedDishes(), settings: clone(DEFAULT_SETTINGS), reviews: [] };
     s.dishes = s.dishes.map(normDish);
     s.settings = mergeSettings(s.settings);
+    s.reviews = (s.reviews || []).map(normReview);
     return s;
   }
   function demoPersist(s) {
@@ -319,6 +367,28 @@
     return new Promise(function (resolve) {
       var s = demoState();
       s.dishes = s.dishes.filter(function (x) { return x.id !== id; });
+      demoPersist(s);
+      resolve();
+    });
+  }
+
+  function demoSaveReview(r) {
+    return new Promise(function (resolve) {
+      var s = demoState();
+      var saved = normReview(clone(r));
+      if (!saved.id || /^new-/.test(saved.id)) saved.id = newId();
+      var idx = -1;
+      s.reviews.forEach(function (x, i) { if (x.id === saved.id) idx = i; });
+      if (idx >= 0) s.reviews[idx] = saved; else s.reviews.push(saved);
+      demoPersist(s);
+      resolve(saved);
+    });
+  }
+
+  function demoDeleteReview(id) {
+    return new Promise(function (resolve) {
+      var s = demoState();
+      s.reviews = s.reviews.filter(function (x) { return x.id !== id; });
       demoPersist(s);
       resolve();
     });
@@ -363,12 +433,18 @@
       if (!LIVE) return null;
       var c = lsGet('cache');
       if (!c || !Array.isArray(c.dishes)) return null;
-      return { dishes: c.dishes.map(normDish), settings: mergeSettings(c.settings) };
+      return {
+        dishes: c.dishes.map(normDish),
+        settings: mergeSettings(c.settings),
+        reviews: (c.reviews || []).map(normReview)
+      };
     },
     load: function () { return LIVE ? liveLoad() : demoLoad(); },
 
     saveDish: function (d) { return LIVE ? liveSaveDish(d) : demoSaveDish(d); },
     deleteDish: function (id) { return LIVE ? liveDeleteDish(id) : demoDeleteDish(id); },
+    saveReview: function (r) { return LIVE ? liveSaveReview(r) : demoSaveReview(r); },
+    deleteReview: function (id) { return LIVE ? liveDeleteReview(id) : demoDeleteReview(id); },
     saveSettings: function (s) { return LIVE ? liveSaveSettings(s) : demoSaveSettings(s); },
     uploadImage: function (blob) { return LIVE ? liveUpload(blob) : blobToDataURL(blob); },
 

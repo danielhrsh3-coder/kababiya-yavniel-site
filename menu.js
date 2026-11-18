@@ -12,6 +12,7 @@
   var state = {
     dishes: Store.seedDishes(),
     settings: Store.defaultSettings(),
+    reviews: [],
     edit: false,
     empty: false,
     offline: false
@@ -41,15 +42,32 @@
     return String(text || '').split(/[·\n,،]+/).map(function (x) { return x.trim(); }).filter(Boolean);
   }
 
-  function isShownPublic(d, today) {
-    return d.visible !== false && (!d.special_date || d.special_date === today);
+  /* ספיישל = מנה עם תאריך התחלה (special_date) ותאריך סיום אופציונלי (special_until) */
+  function endOf(d) {
+    return d.special_until && d.special_until > d.special_date ? d.special_until : d.special_date;
   }
 
-  function dateLabel(date, today) {
-    if (date === today) return 'היום בלבד';
-    if (date === Store.addDays(today, 1)) return 'מחר בלבד';
+  function isShownPublic(d, today) {
+    if (d.visible === false) return false;
+    if (!d.special_date) return true;
+    return today >= d.special_date && today <= endOf(d);
+  }
+
+  function dmy(date) {
     var p = date.split('-');
-    return 'ב-' + p[2] + '.' + p[1] + ' בלבד';
+    return p[2] + '.' + p[1];
+  }
+
+  function specialLabel(d, today) {
+    var end = endOf(d);
+    var single = end === d.special_date;
+    if (d.special_date > today) {
+      if (single) return d.special_date === Store.addDays(today, 1) ? 'מחר בלבד' : 'ב-' + dmy(d.special_date) + ' בלבד';
+      return dmy(d.special_date) + ' עד ' + dmy(end);
+    }
+    if (single) return 'היום בלבד';
+    if (end === today) return 'היום האחרון';
+    return 'עד ' + dmy(end);
   }
 
   /* ---------- אייקוני תמונה חסרה (כמו שהיה באתר) ---------- */
@@ -60,9 +78,11 @@
     generic: '<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 3a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/>'
   };
   ICONS.entrecote = ICONS.kabab;
+  ICONS.special = '<path d="M19.48 12.35c-1.57-4.08-7.16-4.3-5.81-10.23.1-.44-.37-.78-.75-.55C9.29 3.71 6.68 8 8.87 13.62c.18.46-.36.89-.75.59-1.81-1.37-2-3.34-1.84-4.75.06-.52-.62-.77-.91-.34C4.69 10.16 4 11.84 4 14.37c.38 5.6 5.11 7.32 6.81 7.54 2.43.31 5.06-.14 6.95-1.87 2.08-1.93 2.84-5.01 1.72-7.69z"/>';
 
   function placeholderKey(d) {
     if (d.placeholder && ICONS[d.placeholder]) return d.placeholder;
+    if (d.special_date) return 'special';
     return d.cat === 'hummus' ? 'hummus' : (d.cat === 'grill' ? 'kabab' : 'generic');
   }
 
@@ -76,8 +96,9 @@
   function tagHTML(d, today, ed) {
     if (ed && d.visible === false) return '<span class="dish-tag is-off">מוסתרת</span>';
     if (d.special_date) {
-      if (d.special_date < today) return ed ? '<span class="dish-tag is-expired">פג תוקף</span>' : '';
-      return '<span class="dish-tag is-temp">' + esc(dateLabel(d.special_date, today)) + '</span>';
+      if (endOf(d) < today) return ed ? '<span class="dish-tag is-expired">פג תוקף</span>' : '';
+      var future = d.special_date > today;
+      return '<span class="dish-tag ' + (future ? 'is-future' : 'is-temp') + '">' + esc(specialLabel(d, today)) + '</span>';
     }
     return '';
   }
@@ -104,7 +125,8 @@
             '<svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor">' + ICONS[ph] + '</svg></div>';
     }
     var note = cleanNote(d.note);
-    return '<div class="menu-dish' + (ed && !shown ? ' is-off' : '') + '" data-cat="' + esc(d.cat) + '" data-id="' + esc(d.id) + '">' +
+    var special = !!d.special_date;
+    return '<div class="menu-dish' + (special ? ' is-special' : '') + (ed && !shown ? ' is-off' : '') + '" data-cat="' + (special ? 'specials' : esc(d.cat)) + '" data-id="' + esc(d.id) + '">' +
       img +
       '<div class="menu-dish-info">' +
         tagHTML(d, today, ed) +
@@ -132,10 +154,22 @@
     var today = Store.todayIL();
     var ed = state.edit;
     var list = state.dishes.filter(function (d) { return ed || isShownPublic(d, today); });
-    var main = list.filter(function (d) { return d.cat === 'grill' || d.cat === 'hummus'; });
-    var sides = list.filter(function (d) { return d.cat === 'sides'; });
-    var drinks = list.filter(function (d) { return d.cat === 'drinks'; });
+    var specials = list.filter(function (d) { return d.special_date; });
+    var regular = list.filter(function (d) { return !d.special_date; });
+    var main = regular.filter(function (d) { return d.cat === 'grill' || d.cat === 'hummus'; });
+    var sides = regular.filter(function (d) { return d.cat === 'sides'; });
+    var drinks = regular.filter(function (d) { return d.cat === 'drinks'; });
     var html = '';
+
+    if (specials.length || ed) {
+      html += '<div class="menu-group menu-group-specials" data-cat="specials">' +
+        '<h3><span aria-hidden="true">🔥</span> ספיישלים לזמן מוגבל</h3>' +
+        '<div class="menu-dish-list">' +
+        specials.map(function (d) { return dishHTML(d, today, ed); }).join('') +
+        (ed ? '<button type="button" class="ed-add-tile" data-add="special"><span>＋</span> הוסף ספיישל</button>' : '') +
+        '</div></div>';
+    }
+    syncSpecialsTab(specials.length > 0);
 
     if (main.length || ed) {
       html += '<div class="menu-group menu-group-main" data-cat="grill hummus"><h3>מנות עיקריות</h3>' +
@@ -170,6 +204,60 @@
     bodyEl.innerHTML = html;
     rendered = true;
     applyFilter(currentFilter);
+    renderReviews();
+  }
+
+  /* טאב "ספיישלים" מופיע רק כשיש ספיישלים */
+  function syncSpecialsTab(has) {
+    var tabs = doc.querySelector('.menu-tabs');
+    if (!tabs) return;
+    var t = tabs.querySelector('[data-filter="specials"]');
+    if (has && !t) {
+      t = doc.createElement('button');
+      t.type = 'button';
+      t.className = 'menu-tab menu-tab-special';
+      t.setAttribute('role', 'tab');
+      t.setAttribute('aria-selected', 'false');
+      t.setAttribute('data-filter', 'specials');
+      t.textContent = '🔥 ספיישלים';
+      var all = tabs.querySelector('[data-filter="all"]');
+      tabs.insertBefore(t, all ? all.nextSibling : tabs.firstChild);
+    } else if (!has && t) {
+      tabs.removeChild(t);
+      if (currentFilter === 'specials') currentFilter = 'all';
+    }
+  }
+
+  /* ---------- חוות דעת ---------- */
+  function starsText(n) {
+    var out = '';
+    for (var i = 0; i < 5; i++) out += i < n ? '★' : '☆';
+    return out;
+  }
+
+  function reviewHTML(r, ed) {
+    var who = '';
+    if (r.author) who = '— ' + esc(r.author) + (r.source ? ' · ' + esc(r.source) : '');
+    else if (r.source) who = '— ' + esc(r.source);
+    var off = ed && r.visible === false;
+    return '<div class="review-card' + (off ? ' is-off' : '') + '" data-id="' + esc(r.id) + '">' +
+      '<div class="review-stars" role="img" aria-label="' + r.stars + ' כוכבים מתוך 5">' + starsText(r.stars) + '</div>' +
+      '<p class="review-text">' + esc(r.text) + '</p>' +
+      (who ? '<span class="review-author">' + who + '</span>' : '') +
+      (off ? '<span class="dish-tag is-off">מוסתרת</span>' : '') +
+      (ed ? pencil('data-edit-review="' + esc(r.id) + '"', 'עריכת חוות דעת' + (r.author ? ' של ' + r.author : '')) : '') +
+    '</div>';
+  }
+
+  function renderReviews() {
+    var sec = doc.getElementById('reviews');
+    var grid = doc.getElementById('reviews-grid');
+    if (!sec || !grid) return;
+    var ed = state.edit;
+    var list = (state.reviews || []).filter(function (r) { return ed || r.visible !== false; });
+    sec.hidden = !(list.length || ed);
+    grid.innerHTML = list.map(function (r) { return reviewHTML(r, ed); }).join('') +
+      (ed ? '<button type="button" class="ed-add-tile" data-add-review><span>＋</span> הוסף חוות דעת</button>' : '');
   }
 
   /* ---------- טאבים (סינון קטגוריות) ---------- */
@@ -218,17 +306,18 @@
   }
   function onPopupKey(e) { if (e.key === 'Escape') closePopup(); }
 
-  function openPopup(text) {
+  function openPopup(text, image) {
     closePopup();
     var el = doc.createElement('div');
     el.className = 'site-popup';
     el.innerHTML =
-      '<div class="site-popup-card" role="dialog" aria-modal="true" aria-label="הודעה מהקבביה">' +
-        '<img class="site-popup-logo" src="images/logo.jpg" alt="">' +
-        '<p class="site-popup-text"></p>' +
+      '<div class="site-popup-card' + (image ? ' has-image' : '') + '" role="dialog" aria-modal="true" aria-label="הודעה מהקבביה">' +
+        (image ? '<img class="site-popup-img" alt="">' : '<img class="site-popup-logo" src="images/logo.jpg" alt="">') +
+        (text ? '<p class="site-popup-text"></p>' : '') +
         '<button type="button" class="btn btn-whatsapp site-popup-close">הבנתי</button>' +
       '</div>';
-    el.querySelector('.site-popup-text').textContent = text;
+    if (image) el.querySelector('.site-popup-img').setAttribute('src', image);
+    if (text) el.querySelector('.site-popup-text').textContent = text;
     el.addEventListener('click', function (e) { if (e.target === el) closePopup(); });
     el.querySelector('.site-popup-close').addEventListener('click', closePopup);
     doc.body.appendChild(el);
@@ -240,29 +329,31 @@
   function maybeShowPopup(force) {
     var s = state.settings;
     var text = String(s.popup_text || '').trim();
-    if (!text) return;
+    var image = String(s.popup_image || '').trim();
+    if (!text && !image) return;
     if (!force) {
       if (!s.popup_enabled) return;
       if (s.popup_until && s.popup_until < Store.todayIL()) return;
-      var key = 'kababia.popup.' + hashText(text);
+      var key = 'kababia.popup.' + hashText(text + '|' + image.slice(-60));
       try {
         if (global.sessionStorage.getItem(key)) return;
         global.sessionStorage.setItem(key, '1');
       } catch (e) {}
     }
-    openPopup(text);
+    openPopup(text, image);
   }
 
   /* ---------- טעינת הנתונים ---------- */
-  function signature(d) { return JSON.stringify([d.dishes, d.settings]); }
+  function signature(d) { return JSON.stringify([d.dishes, d.settings, d.reviews]); }
 
   function applyData(d) {
+    state.reviews = d.reviews || [];
     if (!d.dishes.length) {
       // מסד ריק: משאירים את התפריט הסטטי שב-HTML (ובעריכה אפשר לייבא אותו)
       state.empty = true;
       state.dishes = [];
       state.settings = d.settings;
-      if (state.edit) render();
+      if (state.edit) render(); else renderReviews();
       return;
     }
     state.empty = false;
@@ -328,7 +419,9 @@
     getFilter: function () { return currentFilter; },
     esc: esc,
     isShownPublic: isShownPublic,
-    dateLabel: dateLabel,
+    endOf: endOf,
+    specialLabel: specialLabel,
+    renderReviews: renderReviews,
     splitItems: splitItems,
     cleanNote: cleanNote,
     showPopup: maybeShowPopup,

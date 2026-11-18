@@ -13,7 +13,8 @@ create table if not exists public.dishes (
   prices       jsonb not null default '[]'::jsonb,   -- [{"label":"פיתה","price":42}, ...]
   sort         integer not null default 0,
   visible      boolean not null default true,
-  special_date date,                                  -- מנה זמנית: מופיעה רק בתאריך הזה
+  special_date date,                                  -- ספיישל: מופיע מהתאריך הזה
+  special_until date,                                 -- ספיישל לכמה ימים: עד התאריך הזה (ריק = יום אחד)
   created_at   timestamptz not null default now()
 );
 
@@ -23,18 +24,38 @@ create table if not exists public.site_settings (
   popup_enabled boolean not null default false,
   popup_text    text not null default '',
   popup_until   date,
+  popup_image   text not null default '',
   salads        text,
   sauces        text
 );
 
+-- 2ב. חוות דעת על העסק -----------------------------------------------------
+create table if not exists public.reviews (
+  id         uuid primary key default gen_random_uuid(),
+  author     text not null default '',
+  text       text not null,
+  stars      smallint not null default 5 check (stars between 1 and 5),
+  source     text not null default '',
+  sort       integer not null default 0,
+  visible    boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- אם כבר הרצת גרסה קודמת של הקובץ, השורות האלה מוסיפות את מה שחסר
+alter table public.dishes        add column if not exists special_until date;
+alter table public.site_settings add column if not exists popup_image text not null default '';
+
 -- 3. הרשאות: כולם קוראים, רק בעל העסק (משתמש מחובר) כותב ------------------
 alter table public.dishes        enable row level security;
 alter table public.site_settings enable row level security;
+alter table public.reviews       enable row level security;
 
 drop policy if exists "dishes public read"  on public.dishes;
 drop policy if exists "dishes owner all"    on public.dishes;
 drop policy if exists "settings public read" on public.site_settings;
 drop policy if exists "settings owner all"   on public.site_settings;
+drop policy if exists "reviews public read"  on public.reviews;
+drop policy if exists "reviews owner all"    on public.reviews;
 
 create policy "dishes public read"   on public.dishes
   for select to anon using (visible = true);
@@ -43,6 +64,10 @@ create policy "dishes owner all"     on public.dishes
 create policy "settings public read" on public.site_settings
   for select to anon using (true);
 create policy "settings owner all"   on public.site_settings
+  for all to authenticated using (true) with check (true);
+create policy "reviews public read"  on public.reviews
+  for select to anon using (visible = true);
+create policy "reviews owner all"    on public.reviews
   for all to authenticated using (true) with check (true);
 
 -- 4. אחסון תמונות ---------------------------------------------------------

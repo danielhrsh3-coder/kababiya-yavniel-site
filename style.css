@@ -921,3 +921,43 @@ body.popup-open { overflow: hidden; }
   cursor: pointer;
 }
 .owner-lock:hover, .owner-lock:focus-visible { opacity: .75; outline: none; }
+
+/* ---------- ספיישלים: קבוצה בולטת בראש התפריט ---------- */
+.menu-group-specials {
+  margin-bottom: 40px;
+  padding: 18px 18px 22px;
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(245,158,11,.14), rgba(139,0,0,.10));
+}
+.menu-group-specials h3 {
+  color: var(--gold-light);
+  border-bottom-color: rgba(245,158,11,.45);
+}
+.menu-dish.is-special {
+  border-color: var(--gold);
+  background: rgba(8,8,8,.6);
+}
+.dish-tag.is-future {
+  background: transparent;
+  border: 1.5px solid var(--gold);
+  color: var(--gold-light);
+}
+.menu-tab-special { border-color: var(--gold); color: var(--gold-light); }
+
+/* ---------- תמונה בהודעה הקופצת ---------- */
+.site-popup-img {
+  width: 100%;
+  max-height: 52vh;
+  margin: 0 auto 16px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: #000;
+}
+.site-popup-card.has-image { padding-top: 16px; }
+
+.menu-group-specials .menu-dish-list { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
+.placeholder-special { color: var(--gold-light); }
+@media (max-width: 480px) {
+  .menu-group-specials { padding: 14px 12px 16px; }
+}

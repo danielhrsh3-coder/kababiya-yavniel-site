@@ -19,9 +19,16 @@
   function hasHebrew(s) { return /[֐-׿]/.test(String(s || '')); }
 
   function sectionOf(cat) { return (cat === 'grill' || cat === 'hummus') ? 'main' : cat; }
+  function dishSection(d) { return d.special_date ? 'special' : sectionOf(d.cat); }
 
   function sortDishes() {
     S.dishes = S.dishes.map(function (d, i) { return { d: d, i: i }; })
+      .sort(function (a, b) { return (a.d.sort - b.d.sort) || (a.i - b.i); })
+      .map(function (x) { return x.d; });
+  }
+
+  function sortReviews() {
+    S.reviews = S.reviews.map(function (d, i) { return { d: d, i: i }; })
       .sort(function (a, b) { return (a.d.sort - b.d.sort) || (a.i - b.i); })
       .map(function (x) { return x.d; });
   }
@@ -123,6 +130,44 @@
         fallback();
       }
     });
+  }
+
+  /* בורר תמונה קטן: כפתור בחירה, תצוגה מקדימה, הסרה. משמש את ההודעה הקופצת */
+  function photoPicker(root, initialUrl, onError, maxSide) {
+    var st = { blob: null, previewURL: null, removed: false };
+    var fileIn = $(root, 'input[type=file]');
+    var box = $(root, '[data-preview]');
+    var pick = $(root, '[data-act=pick]');
+    var del = $(root, '[data-act=unphoto]');
+    function src() { return st.blob ? st.previewURL : (st.removed ? '' : (initialUrl || '')); }
+    function refresh() {
+      var u = src();
+      box.innerHTML = u ? '<img alt="" src="' + esc(u) + '">' : '<span>אין תמונה</span>';
+      del.hidden = !u;
+      pick.textContent = u ? '📷 החלף תמונה' : '📷 בחר תמונה';
+    }
+    refresh();
+    pick.addEventListener('click', function () { fileIn.click(); });
+    del.addEventListener('click', function () { st.blob = null; st.removed = true; refresh(); });
+    fileIn.addEventListener('change', function () {
+      var file = fileIn.files && fileIn.files[0];
+      if (!file) return;
+      resizeImage(file, maxSide || 1100, 0.85).then(function (blob) {
+        if (st.previewURL) { try { URL.revokeObjectURL(st.previewURL); } catch (e) {} }
+        st.blob = blob; st.removed = false;
+        st.previewURL = URL.createObjectURL(blob);
+        refresh();
+      }, function (er) { onError(er.message || 'לא הצלחנו לקרוא את התמונה'); });
+      fileIn.value = '';
+    });
+    return {
+      src: src,
+      resolve: function () {
+        if (st.blob) return Store.uploadImage(st.blob);
+        return Promise.resolve(st.removed ? '' : (initialUrl || ''));
+      },
+      dispose: function () { if (st.previewURL) { try { URL.revokeObjectURL(st.previewURL); } catch (e) {} } }
+    };
   }
 
   /* ---------- שגיאות ---------- */
@@ -229,7 +274,7 @@
         '</div>' +
       '</div>' +
 
-      '<div class="ed-field"><span class="ed-label">איפה בתפריט?</span>' +
+      '<div class="ed-field" data-cat-box><span class="ed-label">איפה בתפריט?</span>' +
         '<div class="ed-chips" role="radiogroup">' +
           Object.keys(CAT_LABELS).map(function (k) {
             return '<button type="button" class="ed-chip" role="radio" data-cat="' + k + '">' + CAT_LABELS[k] + '</button>';
@@ -240,13 +285,15 @@
       '<div class="ed-field"><span class="ed-label">מתי להציג אותה?</span>' +
         '<div class="ed-cards">' +
           '<label class="ed-card"><input type="radio" name="when" value="always"><span><b>תמיד</b><small>מנה קבועה בתפריט</small></span></label>' +
-          '<label class="ed-card"><input type="radio" name="when" value="date"><span><b>ביום אחד בלבד</b><small>מנה זמנית, נעלמת לבד אחרי היום</small></span></label>' +
+          '<label class="ed-card"><input type="radio" name="when" value="date"><span><b>🔥 ספיישל (לזמן מוגבל)</b><small>מופיע בקטגוריה מיוחדת בראש התפריט, ונעלם לבד בסוף התקופה</small></span></label>' +
           '<div class="ed-date" hidden>' +
             '<div class="ed-date-quick">' +
-              '<button type="button" class="ed-chip" data-day="0">היום</button>' +
-              '<button type="button" class="ed-chip" data-day="1">מחר</button>' +
+              '<button type="button" class="ed-chip" data-quick="today">היום בלבד</button>' +
+              '<button type="button" class="ed-chip" data-quick="tomorrow">מחר בלבד</button>' +
             '</div>' +
-            '<label class="ed-date-pick">או תאריך אחר: <input class="ed-input" name="date" type="date"></label>' +
+            '<label class="ed-date-pick"><span>מתאריך</span><input class="ed-input" name="date" type="date"></label>' +
+            '<label class="ed-date-pick"><span>עד תאריך <small>(אם זה לכמה ימים)</small></span><input class="ed-input" name="until" type="date"></label>' +
+            '<button type="button" class="ed-link" data-act="clear-until" hidden>רק יום אחד (ביטול תאריך הסיום)</button>' +
           '</div>' +
           '<label class="ed-card"><input type="radio" name="when" value="hidden"><span><b>מוסתרת</b><small>לא מופיעה כרגע, אפשר להחזיר מתי שרוצים</small></span></label>' +
         '</div>' +
@@ -271,10 +318,11 @@
     var today = Store.todayIL();
     var base = dish ? clone(dish) : {
       id: null, cat: 'grill', name: '', note: '', image: '', placeholder: '',
-      prices: [{ label: '', price: '' }], visible: true, special_date: null, sort: 0
+      prices: [{ label: '', price: '' }], visible: true, special_date: null, special_until: null, sort: 0
     };
     if (defaults) Object.keys(defaults).forEach(function (k) { base[k] = defaults[k]; });
     if (!base.prices || !base.prices.length) base.prices = [{ label: '', price: '' }];
+    if (isNew && defaults && defaults.special_date) base.special_date = defaults.special_date;
 
     var f = {
       cat: base.cat,
@@ -283,6 +331,7 @@
       single: String(base.prices[0].price == null ? '' : base.prices[0].price),
       mode: base.visible === false ? 'hidden' : (base.special_date ? 'date' : 'always'),
       date: base.special_date || today,
+      until: base.special_until || '',
       blob: null,
       removeImage: false,
       previewURL: null
@@ -297,12 +346,14 @@
     var noteIn = form.elements.note;
     var fileIn = $(el, 'input[type=file]');
     var dateIn = form.elements.date;
+    var untilIn = form.elements.until;
 
     nameIn.value = base.name;
     noteIn.value = base.note || '';
     priceIn.value = f.single;
     dateIn.value = f.date;
-    dateIn.min = today;
+    untilIn.value = f.until;
+    untilIn.min = today;
 
     m.onClose = function () { if (f.previewURL) { try { URL.revokeObjectURL(f.previewURL); } catch (e) {} } };
 
@@ -381,20 +432,33 @@
     function refreshWhen() {
       Array.prototype.forEach.call(form.elements.when, function (r) { r.checked = (r.value === f.mode); });
       $(el, '.ed-date').hidden = f.mode !== 'date';
+      $(el, '[data-cat-box]').hidden = f.mode === 'date';   // ספיישל מופיע בקטגוריה משלו
       dateIn.value = f.date;
-      Array.prototype.forEach.call(el.querySelectorAll('[data-day]'), function (b) {
-        b.classList.toggle('is-on', f.date === Store.addDays(today, Number(b.dataset.day)));
-      });
+      untilIn.value = f.until;
+      $(el, '[data-act=clear-until]').hidden = !f.until;
+      var single = !f.until || f.until === f.date;
+      $(el, '[data-quick=today]').classList.toggle('is-on', single && f.date === today);
+      $(el, '[data-quick=tomorrow]').classList.toggle('is-on', single && f.date === Store.addDays(today, 1));
     }
     refreshWhen();
-    dateIn.addEventListener('change', function () { f.date = dateIn.value; refreshWhen(); });
+    dateIn.addEventListener('change', function () {
+      f.date = dateIn.value;
+      if (f.until && f.until < f.date) f.until = '';
+      refreshWhen();
+    });
+    untilIn.addEventListener('change', function () { f.until = untilIn.value; refreshWhen(); });
 
     /* לחיצות */
     el.addEventListener('click', function (e) {
       var t = e.target.closest('button, input[name=when]');
       if (!t) return;
       if (t.dataset.cat) { f.cat = t.dataset.cat; refreshCat(); return; }
-      if (t.dataset.day !== undefined) { f.date = Store.addDays(today, Number(t.dataset.day)); refreshWhen(); return; }
+      if (t.dataset.quick) {
+        f.date = t.dataset.quick === 'today' ? today : Store.addDays(today, 1);
+        f.until = '';
+        refreshWhen();
+        return;
+      }
       if (t.name === 'when') { f.mode = t.value; refreshWhen(); return; }
       switch (t.dataset.act) {
         case 'sizes':
@@ -413,6 +477,7 @@
           renderSizes();
           break;
         case 'pick': fileIn.click(); break;
+        case 'clear-until': f.until = ''; refreshWhen(); break;
         case 'unphoto':
           f.blob = null; f.removeImage = true;
           refreshPhoto();
@@ -445,12 +510,14 @@
         if (prices.length > 1 && prices.some(function (p) { return !p.label; })) return showError('חסר שם לאחד הגדלים (למשל: פיתה)');
       }
 
-      var special = null, visible = true;
+      var special = null, until = null, visible = true;
       if (f.mode === 'hidden') visible = false;
       if (f.mode === 'date') {
-        if (!f.date) return showError('בחר תאריך למנה הזמנית');
-        if (f.date < today) return showError('התאריך שבחרת כבר עבר');
+        if (!f.date) return showError('בחר את התאריך של הספיישל');
+        if (f.until && f.until < f.date) return showError('תאריך הסיום קודם לתאריך ההתחלה');
+        if ((f.until || f.date) < today) return showError('התאריך שבחרת כבר עבר');
         special = f.date;
+        until = (f.until && f.until !== f.date) ? f.until : null;
       }
 
       var sorts = S.dishes.map(function (x) { return x.sort || 0; });
@@ -464,7 +531,7 @@
       imgStep.then(function (image) {
         var out = clone(base);
         out.name = name; out.note = noteIn.value.trim(); out.cat = f.cat; out.prices = prices;
-        out.image = image; out.visible = visible; out.special_date = special; out.sort = sort;
+        out.image = image; out.visible = visible; out.special_date = special; out.special_until = until; out.sort = sort;
         return Store.saveDish(out);
       }).then(function (saved) {
         var idx = -1;
@@ -475,7 +542,7 @@
         App.render();
         m.close();
         flash(saved.id);
-        toast(isNew ? 'המנה נוספה ✓' : 'נשמר ✓');
+        toast(f.mode === 'date' ? (isNew ? 'הספיישל נוסף ✓' : 'הספיישל נשמר ✓') : (isNew ? 'המנה נוספה ✓' : 'נשמר ✓'));
       }, function (er) {
         btn.disabled = false; btn.textContent = '💾 שמור';
         fail(er, 'לשמור');
@@ -502,8 +569,8 @@
   }
 
   function moveDish(d, dir) {
-    var sec = sectionOf(d.cat);
-    var list = S.dishes.filter(function (x) { return sectionOf(x.cat) === sec; });
+    var sec = dishSection(d);
+    var list = S.dishes.filter(function (x) { return dishSection(x) === sec; });
     var i = list.map(function (x) { return x.id; }).indexOf(d.id);
     var j = i + dir;
     if (j < 0 || j >= list.length) {
@@ -534,9 +601,19 @@
     var m = openModal(
       '<form class="ed-form" novalidate>' +
         '<h2 class="ed-title">📢 הודעה קופצת באתר</h2>' +
-        '<p class="ed-text">ההודעה קופצת ללקוח כשהוא נכנס לאתר (פעם אחת בכל ביקור). אפשר לכתוב עליה, למשל, מנה מיוחדת של מחר או שינוי בשעות.</p>' +
+        '<p class="ed-text">ההודעה קופצת ללקוח כשהוא נכנס לאתר (פעם אחת בכל ביקור). אפשר לכתוב עליה, למשל, ספיישל של מחר או שינוי בשעות, ולהוסיף תמונה.</p>' +
         '<label class="ed-field"><span class="ed-label">מה לכתוב בהודעה?</span>' +
           '<textarea class="ed-input ed-textarea" name="text" rows="4" maxlength="300" placeholder="לדוגמה: מחר בלבד! קוסקוס של הבית, כמות מוגבלת"></textarea></label>' +
+        '<div class="ed-field"><span class="ed-label">תמונה <small>(לא חובה)</small></span>' +
+          '<div class="ed-photo ed-photo-wide">' +
+            '<div class="ed-photo-preview ed-photo-rect" data-preview></div>' +
+            '<div class="ed-photo-btns">' +
+              '<button type="button" class="ed-btn ed-btn-secondary" data-act="pick">📷 בחר תמונה</button>' +
+              '<button type="button" class="ed-link" data-act="unphoto" hidden>הסר תמונה</button>' +
+            '</div>' +
+            '<input type="file" accept="image/*" hidden>' +
+          '</div>' +
+        '</div>' +
         '<label class="ed-switch"><input type="checkbox" name="on"><span class="ed-switch-ui"></span><span>להציג את ההודעה באתר</span></label>' +
         '<div class="ed-field"><span class="ed-label">להפסיק להציג אחרי תאריך <small>(לא חובה)</small></span>' +
           '<div class="ed-date-quick"><button type="button" class="ed-chip" data-day="0">היום</button><button type="button" class="ed-chip" data-day="1">מחר</button><button type="button" class="ed-chip" data-day="clear">בלי הגבלה</button></div>' +
@@ -549,6 +626,10 @@
         '</div>' +
       '</form>', 'ed-modal-form');
     var el = m.el, form = $(el, 'form'), err = $(el, '.ed-error');
+    function showErr(msg) { err.textContent = msg; err.hidden = false; }
+    var picker = photoPicker(el, s.popup_image || '', showErr, 1100);
+    m.onClose = function () { picker.dispose(); };
+
     form.elements.text.value = s.popup_text || '';
     form.elements.on.checked = !!s.popup_enabled;
     form.elements.until.value = s.popup_until || '';
@@ -574,9 +655,10 @@
         m.close();
       } else if (t.dataset.act === 'preview') {
         var txt = form.elements.text.value.trim();
-        if (!txt) { err.textContent = 'כתוב קודם את ההודעה'; err.hidden = false; return; }
+        var img = picker.src();
+        if (!txt && !img) { showErr('כתוב קודם הודעה או הוסף תמונה'); return; }
         err.hidden = true;
-        App.previewPopup(txt);
+        App.previewPopup(txt, img);
       }
     });
 
@@ -585,13 +667,15 @@
       err.hidden = true;
       var text = form.elements.text.value.trim();
       var on = form.elements.on.checked;
-      if (on && !text) { err.textContent = 'כדי להציג הודעה צריך לכתוב אותה'; err.hidden = false; form.elements.text.focus(); return; }
+      if (on && !text && !picker.src()) { showErr('כדי להציג הודעה צריך לכתוב טקסט או להוסיף תמונה'); form.elements.text.focus(); return; }
       var until = form.elements.until.value || null;
-      if (until && until < today) { err.textContent = 'התאריך שבחרת כבר עבר'; err.hidden = false; return; }
+      if (until && until < today) { showErr('התאריך שבחרת כבר עבר'); return; }
       var btn = $(el, '.ed-btn-primary');
       btn.disabled = true; btn.textContent = 'שומר…';
-      var next = Object.assign({}, S.settings, { popup_text: text, popup_enabled: on, popup_until: until });
-      Store.saveSettings(next).then(function (saved) {
+      picker.resolve().then(function (image) {
+        var next = Object.assign({}, S.settings, { popup_text: text, popup_enabled: on, popup_until: until, popup_image: image });
+        return Store.saveSettings(next);
+      }).then(function (saved) {
         S.settings = saved;
         m.close();
         toast(on ? 'ההודעה נשמרה ותופיע ללקוחות ✓' : 'ההודעה נשמרה (כרגע כבויה)');
@@ -635,6 +719,142 @@
         toast('נשמר ✓');
       }, function (er) { btn.disabled = false; btn.textContent = '💾 שמור'; fail(er, 'לשמור'); });
     });
+  }
+
+  /* ======================================================================
+     חוות דעת על העסק
+     ====================================================================== */
+  function openReviewForm(review) {
+    var isNew = !review;
+    var base = review ? clone(review) : { id: null, author: '', text: '', stars: 5, source: '', sort: 0, visible: true };
+    var stars = base.stars || 5;
+    var m = openModal(
+      '<form class="ed-form" novalidate>' +
+        '<h2 class="ed-title">' + (isNew ? '➕ חוות דעת חדשה' : '✏️ עריכת חוות דעת') + '</h2>' +
+        '<p class="ed-text">אפשר להעתיק לכאן ביקורת אמיתית של לקוח, למשל מגוגל.</p>' +
+        '<label class="ed-field"><span class="ed-label">מה הלקוח כתב?</span>' +
+          '<textarea class="ed-input ed-textarea" name="text" rows="5" maxlength="500" placeholder="לדוגמה: הקבב הכי טעים באזור, שירות מעולה!"></textarea></label>' +
+        '<label class="ed-field"><span class="ed-label">שם הלקוח</span>' +
+          '<input class="ed-input" name="author" type="text" maxlength="60" autocomplete="off" placeholder="לדוגמה: דני כהן"></label>' +
+        '<div class="ed-field"><span class="ed-label">כמה כוכבים נתן?</span>' +
+          '<div class="ed-stars" role="radiogroup" aria-label="כוכבים">' +
+            [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="ed-star" data-n="' + n + '" role="radio" aria-label="' + n + ' כוכבים">★</button>'; }).join('') +
+          '</div></div>' +
+        '<div class="ed-field"><span class="ed-label">מאיפה? <small>(לא חובה)</small></span>' +
+          '<input class="ed-input" name="source" type="text" maxlength="30" autocomplete="off" placeholder="לדוגמה: גוגל">' +
+          '<div class="ed-date-quick ed-source-quick">' +
+            ['גוגל', 'אינסטגרם', 'פייסבוק', 'וואטסאפ'].map(function (n) { return '<button type="button" class="ed-chip" data-source="' + n + '">' + n + '</button>'; }).join('') +
+          '</div></div>' +
+        '<label class="ed-switch"><input type="checkbox" name="on"><span class="ed-switch-ui"></span><span>להציג באתר</span></label>' +
+        '<p class="ed-error" role="alert" hidden></p>' +
+        '<div class="ed-actions">' +
+          '<button type="submit" class="ed-btn ed-btn-primary">💾 שמור</button>' +
+          '<button type="button" class="ed-btn ed-btn-ghost" data-act="cancel">ביטול</button>' +
+        '</div>' +
+        (isNew ? '' :
+          '<div class="ed-more">' +
+            '<button type="button" class="ed-btn ed-btn-ghost" data-act="up">⬆ הזז למעלה</button>' +
+            '<button type="button" class="ed-btn ed-btn-ghost" data-act="down">⬇ הזז למטה</button>' +
+            '<button type="button" class="ed-btn ed-btn-danger" data-act="delete">🗑 מחק</button>' +
+          '</div>') +
+      '</form>', 'ed-modal-form');
+    var el = m.el, form = $(el, 'form'), err = $(el, '.ed-error');
+    form.elements.text.value = base.text;
+    form.elements.author.value = base.author;
+    form.elements.source.value = base.source;
+    form.elements.on.checked = base.visible !== false;
+
+    function refreshStars() {
+      Array.prototype.forEach.call(el.querySelectorAll('.ed-star'), function (b) {
+        var on = Number(b.dataset.n) <= stars;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-checked', Number(b.dataset.n) === stars ? 'true' : 'false');
+      });
+    }
+    refreshStars();
+
+    el.addEventListener('click', function (e) {
+      var t = e.target.closest('button');
+      if (!t) return;
+      if (t.dataset.n) { stars = Number(t.dataset.n); refreshStars(); return; }
+      if (t.dataset.source) { form.elements.source.value = t.dataset.source; return; }
+      switch (t.dataset.act) {
+        case 'cancel': m.close(); break;
+        case 'delete': deleteReview(review).then(function (ok) { if (ok) m.close(); }); break;
+        case 'up': moveReview(review, -1).then(function (ok) { if (ok) m.close(); }); break;
+        case 'down': moveReview(review, 1).then(function (ok) { if (ok) m.close(); }); break;
+      }
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      err.hidden = true;
+      var text = form.elements.text.value.trim();
+      if (!text) {
+        err.textContent = 'חסר הטקסט של חוות הדעת'; err.hidden = false;
+        form.elements.text.focus();
+        return;
+      }
+      var sorts = S.reviews.map(function (x) { return x.sort || 0; });
+      var out = clone(base);
+      out.text = text;
+      out.author = form.elements.author.value.trim();
+      out.source = form.elements.source.value.trim();
+      out.stars = stars;
+      out.visible = form.elements.on.checked;
+      if (isNew) out.sort = Math.max.apply(null, sorts.concat([0])) + 1;
+      var btn = $(el, '.ed-btn-primary');
+      btn.disabled = true; btn.textContent = 'שומר…';
+      Store.saveReview(out).then(function (saved) {
+        var idx = -1;
+        S.reviews.forEach(function (x, i) { if (x.id === saved.id) idx = i; });
+        if (idx >= 0) S.reviews[idx] = saved; else S.reviews.push(saved);
+        sortReviews();
+        App.renderReviews();
+        m.close();
+        flash(saved.id);
+        toast(isNew ? 'חוות הדעת נוספה ✓' : 'נשמר ✓');
+      }, function (er) { btn.disabled = false; btn.textContent = '💾 שמור'; fail(er, 'לשמור'); });
+    });
+    setTimeout(function () { if (isNew) form.elements.text.focus(); }, 60);
+  }
+
+  function deleteReview(r) {
+    return confirmDialog({
+      title: 'למחוק את חוות הדעת' + (r.author ? ' של ' + r.author : '') + '?',
+      text: 'אי אפשר לשחזר אחרי המחיקה. אם רק רוצים להסתיר, כבה את "להציג באתר" בעריכה.',
+      ok: 'כן, מחק', danger: true
+    }).then(function (yes) {
+      if (!yes) return false;
+      return Store.deleteReview(r.id).then(function () {
+        S.reviews = S.reviews.filter(function (x) { return x.id !== r.id; });
+        App.renderReviews();
+        toast('חוות הדעת נמחקה');
+        return true;
+      }, function (er) { fail(er, 'למחוק'); return false; });
+    });
+  }
+
+  function moveReview(r, dir) {
+    var list = S.reviews;
+    var i = list.map(function (x) { return x.id; }).indexOf(r.id);
+    var j = i + dir;
+    if (j < 0 || j >= list.length) {
+      toast(dir < 0 ? 'כבר ראשונה' : 'כבר אחרונה');
+      return Promise.resolve(false);
+    }
+    var needsRenumber = list.some(function (x, k) { return k > 0 && x.sort <= list[k - 1].sort; });
+    if (needsRenumber) list.forEach(function (x, k) { x.sort = (k + 1) * 10; });
+    var a = list[i], b = list[j];
+    var tmp = a.sort; a.sort = b.sort; b.sort = tmp;
+    var changed = needsRenumber ? list.slice() : [a, b];
+    return Promise.all(changed.map(function (x) { return Store.saveReview(x); })).then(function () {
+      sortReviews();
+      App.renderReviews();
+      flash(r.id);
+      toast('הוזז ✓');
+      return true;
+    }, function (er) { fail(er, 'להזיז'); App.reload(); return false; });
   }
 
   /* ======================================================================
@@ -686,9 +906,15 @@
 
   function onDocClick(e) {
     if (!inEdit) return;
-    var t = e.target.closest ? e.target.closest('[data-edit],[data-add],[data-edit-fillings],[data-bar]') : null;
+    var t = e.target.closest ? e.target.closest('[data-edit],[data-add],[data-edit-fillings],[data-edit-review],[data-add-review],[data-bar]') : null;
     if (!t) return;
-    if (t.hasAttribute('data-edit')) {
+    if (t.hasAttribute('data-edit-review')) {
+      var rid = t.getAttribute('data-edit-review');
+      var rv = S.reviews.filter(function (x) { return x.id === rid; })[0];
+      if (rv) openReviewForm(rv);
+    } else if (t.hasAttribute('data-add-review')) {
+      openReviewForm(null);
+    } else if (t.hasAttribute('data-edit')) {
       var id = t.getAttribute('data-edit');
       var d = S.dishes.filter(function (x) { return x.id === id; })[0];
       if (d) openDishForm(d);
@@ -696,10 +922,14 @@
       openFillingsForm();
     } else if (t.hasAttribute('data-add')) {
       var kind = t.getAttribute('data-add');
-      openDishForm(null, { cat: kind === 'main' ? (App.getFilter() === 'hummus' ? 'hummus' : 'grill') : kind });
+      if (kind === 'special') openDishForm(null, { cat: 'grill', special_date: Store.todayIL() });
+      else openDishForm(null, { cat: kind === 'main' ? (App.getFilter() === 'hummus' ? 'hummus' : 'grill') : kind });
     } else {
       var act = t.getAttribute('data-bar');
-      if (act === 'add') openDishForm(null, { cat: defaultCat() });
+      if (act === 'add') {
+        if (App.getFilter() === 'specials') openDishForm(null, { cat: 'grill', special_date: Store.todayIL() });
+        else openDishForm(null, { cat: defaultCat() });
+      }
       else if (act === 'popup') openPopupForm();
       else if (act === 'exit') { Store.logout(); exit(); toast('יצאת ממצב העריכה'); }
       else if (act === 'retry') App.reload().then(function () { S.offline = false; buildChrome(); App.render(); });
