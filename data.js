@@ -69,6 +69,60 @@
     { cat: 'drinks', name: 'בירה', prices: [p(10)] }
   ];
 
+  /* SEED_REVIEWS_START */
+  var SEED_REVIEWS = [
+    {
+      "author": "רויטל אברגיל",
+      "stars": 5,
+      "url": "https://goo.gl/maps/2NhHTBPJBCKXzh657",
+      "text": "⭐ המלצה מכל הלב על שיפודיית הקבביה מיבניאל! ⭐\n\nהזמנו אוכל למסע הכומתה של הבן שלנו, ואין לנו מספיק מילים להודות על השירות המדהים! ❤️\n\nהאוכל הגיע בשפע, מסודר בצורה מושלמת, טרי וטעים בטירוף! אבל מעבר לאוכל המצוין, זכינו לפגוש שירות מכל הלב. בעל הבית בעצמו הגיע להביא לנו את האוכל, וגם כשהיו פקקים בדרך, הוא נשאר סבלני, אדיב ונעים לאורך כל הדרך.\n\nבתקופה כל כך מרגשת ומשמעותית עבורנו, היה כיף לפגוש אנשים שעושים את העבודה שלהם באהבה, באכפתיות ובחינוך.\n\nממליצים בחום לכל מי שמחפש אוכל טעים, שפע ושירות יוצא מן הכלל! 🔥❤️\n\nהקבביה מיבניאל – אוכל מעולה ואנשים עם לב ענק!",
+      "source": "גוגל"
+    },
+    {
+      "author": "הראל שטרן",
+      "stars": 5,
+      "url": "https://goo.gl/maps/2LPtPB7tb1V2naEHA",
+      "text": "בעלים מקסים ידע לתת יחס לכל אחד מהמשפחה יש בדוכן שלט של עזרה לחיילים רעבים זה כבר נותן לכם רעיון מה הערכים שלו. בין הקבבים הטובים שאכלתי גם צ'יפס מעולה. רק החיסרון היחיד זה שהיה חם לא יזיק צי של מאווררים חחח תודה על האוכל הטוב!",
+      "source": "גוגל"
+    },
+    {
+      "author": "מבשר טוב שטרן",
+      "stars": 5,
+      "url": "https://goo.gl/maps/UUp7Qp7xBYvhAdkf7",
+      "text": "האוכל נהדר השירות נעים וחם ומהיר וטעים מאוד גם היינו בדרך לכנרת האהובה וזה ממש עשה לנו את זה ממליצים בחום",
+      "source": "גוגל"
+    },
+    {
+      "author": "שלומי קאים",
+      "stars": 5,
+      "url": "https://goo.gl/maps/auQ7C7YYK9J4rz3R6",
+      "text": "טעים נעים ואדיב טעם של עוד",
+      "source": "גוגל"
+    },
+    {
+      "author": "Ofer Yafe",
+      "stars": 5,
+      "url": "https://goo.gl/maps/hUgjT3opmC1U47Zz8",
+      "text": "אחלה מקום אחלה שירות והאוכל מצוין",
+      "source": "גוגל"
+    },
+    {
+      "author": "מעיין אלבז",
+      "stars": 5,
+      "url": "https://goo.gl/maps/bsLs9dBgWx2MCDtF6",
+      "text": "מקום מדהים!\nעממי אבל אוכל ברמה ממש גבוהה, טעים מאוד!\nיחס מדהים ומפנק.\nממולץ מאוד!",
+      "source": "גוגל"
+    },
+    {
+      "author": "Efrat Ganz",
+      "stars": 5,
+      "url": "https://goo.gl/maps/WPDQ5JPng6eh4zxW9",
+      "text": "בוקר טוב הקבביה\nאין עליכם היינו ונהנינו.\nשפע\nטיב וטעם נפלאים .\nאווירה מיוחדת ונעימה מאור פנים ונוף פסטורלי\nתבורכו ותמשיכו להאכיל ולשמח את עם ישראל.",
+      "source": "גוגל"
+    }
+  ];
+  /* SEED_REVIEWS_END */
+
   var DEFAULT_SETTINGS = {
     popup_enabled: false,
     popup_text: '',
@@ -108,6 +162,16 @@
       sort: typeof r.sort === 'number' ? r.sort : (i + 1) * 10,
       visible: r.visible !== false
     };
+  }
+
+  function seedReviews() {
+    return SEED_REVIEWS.map(function (r, i) {
+      var o = clone(r);
+      o.id = 'seed-r' + (i + 1);
+      o.sort = (i + 1) * 10;
+      o.visible = true;
+      return normReview(o, i);
+    });
   }
 
   function seedDishes() {
@@ -339,7 +403,7 @@
      ====================================================================== */
   function demoState() {
     var s = lsGet('demo');
-    if (!s) s = { dishes: seedDishes(), settings: clone(DEFAULT_SETTINGS), reviews: [] };
+    if (!s) s = { dishes: seedDishes(), settings: clone(DEFAULT_SETTINGS), reviews: seedReviews() };
     s.dishes = s.dishes.map(normDish);
     s.settings = mergeSettings(s.settings);
     s.reviews = (s.reviews || []).map(normReview);
@@ -428,6 +492,7 @@
     todayIL: todayIL,
     addDays: addDays,
     seedDishes: seedDishes,
+    seedReviews: seedReviews,
     defaultSettings: function () { return clone(DEFAULT_SETTINGS); },
 
     getCache: function () {
@@ -450,10 +515,18 @@
     uploadImage: function (blob) { return LIVE ? liveUpload(blob) : blobToDataURL(blob); },
 
     importSeed: function () {
-      var list = seedDishes().map(function (d, i) { d.sort = (i + 1) * 10; d.id = null; return d; });
+      var have = Store.getCache();
+      var list = have.dishes && have.dishes.length ? [] :
+        seedDishes().map(function (d, i) { d.sort = (i + 1) * 10; d.id = null; return d; });
+      var revs = have.reviews && have.reviews.length ? [] :
+        seedReviews().map(function (r) { r.id = null; return r; });
       return list.reduce(function (chain, d) {
         return chain.then(function () { return Store.saveDish(d); });
-      }, Promise.resolve());
+      }, Promise.resolve()).then(function () {
+        return revs.reduce(function (chain, r) {
+          return chain.then(function () { return Store.saveReview(r); });
+        }, Promise.resolve());
+      });
     },
 
     isLoggedIn: function () {

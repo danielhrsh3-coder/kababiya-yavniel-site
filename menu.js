@@ -240,7 +240,7 @@
     if (r.author) who = '— ' + esc(r.author) + (r.source ? ' · ' + esc(r.source) : '');
     else if (r.source) who = '— ' + esc(r.source);
     var off = ed && r.visible === false;
-    return '<div class="review-card' + (off ? ' is-off' : '') + '" data-id="' + esc(r.id) + '">' +
+    return '<div class="review-card' + (off ? ' is-off' : '') + ((r.text || '').length > 240 ? ' is-long' : '') + '" data-id="' + esc(r.id) + '">' +
       '<div class="review-stars" role="img" aria-label="' + r.stars + ' כוכבים מתוך 5">' + starsText(r.stars) + '</div>' +
       '<p class="review-text">' + esc(r.text) + '</p>' +
       (who ? '<span class="review-author">' + who + '</span>' : '') +
@@ -354,7 +354,7 @@
       state.empty = true;
       state.dishes = [];
       state.settings = d.settings;
-      if (state.edit) render(); else renderReviews();
+      if (state.edit) render(); else if (state.reviews.length) renderReviews();
       return;
     }
     state.empty = false;
