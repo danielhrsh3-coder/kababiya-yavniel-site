@@ -47,7 +47,34 @@ alter table public.dishes        add column if not exists special_until date;
 alter table public.site_settings add column if not exists popup_image text not null default '';
 alter table public.reviews       add column if not exists url text not null default '';
 
--- 3. הרשאות: כולם קוראים, רק בעל העסק (משתמש מחובר) כותב ------------------
+-- 3. הרשאות: כולם קוראים, רק בעל העסק כותב ---------------------------------
+-- "בעל העסק" הוא משתמש אחד מסוים (טבלת site_owner), לא "כל משתמש מחובר".
+-- כך גם אם בטעות ייווצר משתמש נוסף (הרשמה פתוחה, כניסה אנונימית) הוא לא יוכל לערוך כלום.
+create table if not exists public.site_owner (
+  id      integer primary key default 1 check (id = 1),
+  user_id uuid not null
+);
+alter table public.site_owner enable row level security;   -- בלי מדיניות: אף אחד לא ניגש אליה דרך ה-API
+revoke all on public.site_owner from anon, authenticated;
+
+create or replace function public.is_owner() returns boolean
+language sql stable security definer set search_path = public, auth
+as $$ select exists (select 1 from public.site_owner where user_id = auth.uid()) $$;
+revoke all on function public.is_owner() from public, anon;
+grant execute on function public.is_owner() to authenticated;
+
+-- קובע את בעל העסק: אם יש בדיוק משתמש אחד במערכת, הוא הבעלים (נעשה פעם אחת, לא דורס בעלים קיים).
+-- אם יש כמה משתמשים או אף אחד, לא נקבע בעלים ואף אחד לא יכול לערוך (בטוח כברירת מחדל):
+-- יוצרים את המשתמש של הבעלים ומריצים את הקובץ שוב, או משתמשים בפקודה שבסוף הקובץ.
+insert into public.site_owner (id, user_id)
+select 1, (select id from auth.users limit 1)
+where (select count(*) from auth.users) = 1
+on conflict (id) do nothing;
+
+-- מוודא שלציבור אין שום הרשאת כתיבה (בנוסף ל-RLS)
+revoke insert, update, delete, truncate on public.dishes, public.site_settings, public.reviews from anon;
+revoke truncate on public.dishes, public.site_settings, public.reviews from authenticated;
+
 alter table public.dishes        enable row level security;
 alter table public.site_settings enable row level security;
 alter table public.reviews       enable row level security;
@@ -62,15 +89,15 @@ drop policy if exists "reviews owner all"    on public.reviews;
 create policy "dishes public read"   on public.dishes
   for select to anon using (visible = true);
 create policy "dishes owner all"     on public.dishes
-  for all to authenticated using (true) with check (true);
+  for all to authenticated using (public.is_owner()) with check (public.is_owner());
 create policy "settings public read" on public.site_settings
   for select to anon using (true);
 create policy "settings owner all"   on public.site_settings
-  for all to authenticated using (true) with check (true);
+  for all to authenticated using (public.is_owner()) with check (public.is_owner());
 create policy "reviews public read"  on public.reviews
   for select to anon using (visible = true);
 create policy "reviews owner all"    on public.reviews
-  for all to authenticated using (true) with check (true);
+  for all to authenticated using (public.is_owner()) with check (public.is_owner());
 
 -- 4. אחסון תמונות ---------------------------------------------------------
 insert into storage.buckets (id, name, public)
@@ -82,11 +109,11 @@ drop policy if exists "dish images owner update" on storage.objects;
 drop policy if exists "dish images owner delete" on storage.objects;
 
 create policy "dish images owner upload" on storage.objects
-  for insert to authenticated with check (bucket_id = 'dish-images');
+  for insert to authenticated with check (bucket_id = 'dish-images' and public.is_owner());
 create policy "dish images owner update" on storage.objects
-  for update to authenticated using (bucket_id = 'dish-images');
+  for update to authenticated using (bucket_id = 'dish-images' and public.is_owner());
 create policy "dish images owner delete" on storage.objects
-  for delete to authenticated using (bucket_id = 'dish-images');
+  for delete to authenticated using (bucket_id = 'dish-images' and public.is_owner());
 
 -- 5. התפריט הקיים (מוכנס רק אם הטבלה עדיין ריקה) ---------------------------
 insert into public.dishes (cat, name, note, image, placeholder, prices, sort)
@@ -145,3 +172,10 @@ where not exists (select 1 from public.reviews);
 insert into public.site_settings (id, salads, sauces)
 values (1, 'עגבניות · מלפפונים · חמוצים · חסה · סלט חריף · מטבוחה · חומוס · בצל · חריף · כרוב לבן', 'שום · אלף האיים · שזיפים · צ''ילי מתוק · עמבה · ברביקיו · מיונז · טחינה · קטשופ')
 on conflict (id) do nothing;
+
+-- ----------------------------------------------------------------------------
+-- אם צריך להגדיר או להחליף את הבעלים ידנית (מחליפים את האימייל ומריצים רק את השורה הזאת):
+--
+-- insert into public.site_owner (id, user_id)
+-- select 1, id from auth.users where email = 'owner@example.com'
+-- on conflict (id) do update set user_id = excluded.user_id;
