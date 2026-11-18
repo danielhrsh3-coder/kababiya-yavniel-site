@@ -123,6 +123,7 @@
         <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="drinks">שתייה</button>
       </div>
 
+      <div id="menu-body">
       <div class="menu-group menu-group-main" data-cat="grill hummus">
         <h3>מנות עיקריות</h3>
         <div class="menu-dish-list">
@@ -275,6 +276,7 @@
           </ul>
         </div>
       </div>
+      </div>
     </div>
   </section>
 
@@ -418,46 +420,11 @@
   </a>
 </nav>
 
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="menu.js"></script>
+
 <script>
-(function () {
-  var tabs = document.querySelectorAll('.menu-tab');
-  var dishes = document.querySelectorAll('.menu-dish');
-  var groups = document.querySelectorAll('.menu-group[data-cat], .fillings[data-cat]');
-
-  function matches(el, filter) {
-    return filter === 'all' || el.dataset.cat.split(' ').indexOf(filter) !== -1;
-  }
-
-  function apply(filter) {
-    dishes.forEach(function (dish) {
-      dish.hidden = !matches(dish, filter);
-    });
-    // hide a whole group once nothing inside it is left showing
-    groups.forEach(function (group) {
-      var own = matches(group, filter);
-      var list = group.querySelector('.menu-dish-list');
-      if (list) {
-        own = Array.prototype.some.call(
-          list.querySelectorAll('.menu-dish'),
-          function (d) { return !d.hidden; }
-        );
-      }
-      group.hidden = !own;
-    });
-    tabs.forEach(function (tab) {
-      var on = tab.dataset.filter === filter;
-      tab.classList.toggle('is-active', on);
-      tab.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-  }
-
-  tabs.forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      apply(tab.dataset.filter);
-    });
-  });
-})();
-
 /* באדג' "פתוח עכשיו" - מחושב לפי שעון ישראל, כך שגם גולש מחו"ל רואה סטטוס נכון.
    שינוי שעות? לעדכן גם את הטבלה בסקשן "הוראות הגעה". */
 (function () {
