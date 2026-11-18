@@ -4,5 +4,11 @@
    איך ממלאים: ראה את הקובץ SETUP.md (שלב 4). שני הערכים האלה הם ציבוריים ואין בעיה שיהיו בקוד. */
 window.KABABIA_CONFIG = {
   supabaseUrl: '',   // למשל: https://abcdefgh.supabase.co
-  supabaseKey: ''    // המפתח הציבורי (anon / publishable)
+  supabaseKey: '',   // המפתח הציבורי (anon / publishable)
+
+  // אתר פרטי: true = כל האתר מוסתר מאחורי מסך שחור עם התחברות (לתצוגה מקדימה של הבעלים).
+  // באתר הציבורי ללקוחות משאירים false.
+  gateAll: false,
+  // כניסה נשמרת בדפדפן (נוח לבעלים). false = בכל פתיחה של האתר מבקשים אימייל וסיסמה מחדש.
+  rememberLogin: true
 };

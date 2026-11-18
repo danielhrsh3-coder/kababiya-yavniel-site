@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script>(function(){var l=location;if(/(^|[?&])edit(=|&|$)/.test(l.search)||l.hash==='#edit'){var h=document.documentElement;h.className+=' ed-gate';setTimeout(function(){h.className=h.className.replace(' ed-gate','')},20000);}})();</script>
+<script src="config.js"></script>
+<script>(function(){var l=location,c=window.KABABIA_CONFIG||{};var all=!!c.gateAll;if(all||/(^|[?&])edit(=|&|$)/.test(l.search)||l.hash==='#edit'){var h=document.documentElement;h.className+=' ed-gate';if(!all)setTimeout(function(){h.className=h.className.replace(' ed-gate','')},20000);}})();</script>
 <style>html.ed-gate,html.ed-gate body{background:#000!important}html.ed-gate body{visibility:hidden}html.ed-gate .ed-overlay{visibility:visible}</style>
 <title>תפריט | הקבביה ביבניאל</title>
 <meta name="description" content="התפריט המלא של הקבביה ביבניאל - קבב, המבורגר, שניצל, חומוס ועוד. כשר למהדרין.">
@@ -238,7 +239,6 @@
   </a>
 </nav>
 
-<script src="config.js"></script>
 <script src="data.js"></script>
 <script src="menu.js"></script>
 

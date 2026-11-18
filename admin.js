@@ -6,6 +6,7 @@
   'use strict';
 
   var doc = document;
+  var CFG = global.KABABIA_CONFIG || {};
   var App, Store, S;
   var inEdit = false;
   var chrome = { ribbon: null, bar: null };
@@ -72,9 +73,10 @@
       },
       onClose: null
     };
+    var locked = !!(CFG.gateAll && ovCls && /ed-gate-ov/.test(ovCls));   // אתר פרטי: אי אפשר לברוח ממסך הכניסה
     function onKey(e) {
       var top = doc.querySelectorAll('.ed-overlay');
-      if (e.key === 'Escape' && top[top.length - 1] === ov) api.close();
+      if (e.key === 'Escape' && !locked && top[top.length - 1] === ov) api.close();
     }
     doc.addEventListener('keydown', onKey);
     return api;
@@ -176,6 +178,7 @@
     if (err && err.auth) {
       toast('פג תוקף הכניסה. צריך להיכנס שוב.', 'error');
       Store.logout();
+      if (CFG.gateAll) { setTimeout(function () { global.location.reload(); }, 600); return; }
       exit();
       setTimeout(start, 400);
       return;
@@ -211,7 +214,7 @@
           '<p class="ed-error" role="alert" hidden></p>' +
           '<div class="ed-actions">' +
             '<button type="submit" class="ed-btn ed-btn-primary">כניסה</button>' +
-            '<button type="button" class="ed-btn ed-btn-ghost" data-cancel>ביטול</button>' +
+            (CFG.gateAll ? '' : '<button type="button" class="ed-btn ed-btn-ghost" data-cancel>ביטול</button>') +
           '</div>' +
         '</form>', 'ed-modal-small', /\bed-gate\b/.test(doc.documentElement.className) ? 'ed-gate-ov' : '');
       var form = $(m.el, 'form');
@@ -222,7 +225,8 @@
       email.value = saved || (live ? '' : 'owner@demo');
       setTimeout(function () { (email.value ? pass : email).focus(); }, 50);
       m.onClose = function () { finish(false); };
-      $(m.el, '[data-cancel]').addEventListener('click', function () { finish(false); });
+      var cancelBtn = $(m.el, '[data-cancel]');
+      if (cancelBtn) cancelBtn.addEventListener('click', function () { finish(false); });
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         err.hidden = true;
@@ -981,7 +985,11 @@
         else openDishForm(null, { cat: defaultCat() });
       }
       else if (act === 'popup') openPopupForm();
-      else if (act === 'exit') { Store.logout(); exit(); toast('יצאת ממצב העריכה'); }
+      else if (act === 'exit') {
+        Store.logout();
+        if (CFG.gateAll) { global.location.reload(); return; }   // אתר פרטי: חוזרים למסך השחור
+        exit(); toast('יצאת ממצב העריכה');
+      }
       else if (act === 'retry') App.reload().then(function () { S.offline = false; buildChrome(); App.render(); });
       else if (act === 'import') {
         t.disabled = true; t.textContent = 'מייבא…';
@@ -1038,9 +1046,15 @@
   function start(appRef) {
     if (appRef) { App = appRef; Store = App.Store; S = App.state; }
     if (inEdit) return Promise.resolve();
+    function ask() {
+      return loginDialog().then(function (loggedIn) {
+        if (loggedIn) { enter(); return; }
+        if (CFG.gateAll) return ask();   // אתר פרטי: חייבים להתחבר
+      });
+    }
     return Store.checkSession().then(function (ok) {
       if (ok) { enter(); return; }
-      return loginDialog().then(function (loggedIn) { if (loggedIn) enter(); });
+      return ask();
     });
   }
 

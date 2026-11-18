@@ -392,15 +392,21 @@
     else h.className = h.className.replace(/\s*\bed-gate\b/g, '');
   }
 
+  var CFG = global.KABABIA_CONFIG || {};
+  var GATE_ALL = !!CFG.gateAll;
+
   function startEdit() {
     gate(true);
     return loadAdminAssets().then(function () {
       return global.KababiaAdmin.start(App);
     }).catch(function (e) {
       if (global.console) console.error(e);
-      gate(false);
       alertFallback('לא הצלחנו לפתוח את מצב העריכה. בדוק חיבור לאינטרנט ונסה שוב.');
-    }).then(function () { gate(false); });
+      return false;
+    }).then(function (ok) {
+      if (ok === false && GATE_ALL) return;   // אתר פרטי: נשארים במסך שחור גם אם משהו נכשל
+      gate(false);
+    });
   }
   function alertFallback(msg) { try { global.alert(msg); } catch (e) {} }
 
@@ -455,6 +461,7 @@
     state.offline = true;
     if (global.console) console.warn('menu: טעינה נכשלה, נשאר התפריט הקיים', err);
   }).then(function () {
-    if (wantsEdit()) startEdit(); else maybeShowPopup(false);
+    if (GATE_ALL && CFG.rememberLogin === false) Store.logout();
+    if (GATE_ALL || wantsEdit()) startEdit(); else maybeShowPopup(false);
   });
 })(window);
