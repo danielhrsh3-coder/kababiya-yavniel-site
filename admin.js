@@ -724,13 +724,14 @@
   /* ======================================================================
      חוות דעת על העסק
      ====================================================================== */
-  function openReviewForm(review) {
-    var isNew = !review;
-    var base = review ? clone(review) : { id: null, author: '', text: '', stars: 5, source: '', sort: 0, visible: true };
+  /* חוות דעת קיימת לא ניתנת לעריכה (שומר על האמינות): רק מוסיפים חדשה בטופס הזה */
+  function openReviewForm() {
+    var isNew = true;
+    var base = { id: null, author: '', text: '', stars: 5, source: '', url: '', sort: 0, visible: true };
     var stars = base.stars || 5;
     var m = openModal(
       '<form class="ed-form" novalidate>' +
-        '<h2 class="ed-title">' + (isNew ? '➕ חוות דעת חדשה' : '✏️ עריכת חוות דעת') + '</h2>' +
+        '<h2 class="ed-title">➕ חוות דעת חדשה</h2>' +
         '<p class="ed-text">אפשר להעתיק לכאן ביקורת אמיתית של לקוח, למשל מגוגל.</p>' +
         '<label class="ed-field"><span class="ed-label">מה הלקוח כתב?</span>' +
           '<textarea class="ed-input ed-textarea" name="text" rows="5" maxlength="500" placeholder="לדוגמה: הקבב הכי טעים באזור, שירות מעולה!"></textarea></label>' +
@@ -754,12 +755,6 @@
           '<button type="submit" class="ed-btn ed-btn-primary">💾 שמור</button>' +
           '<button type="button" class="ed-btn ed-btn-ghost" data-act="cancel">ביטול</button>' +
         '</div>' +
-        (isNew ? '' :
-          '<div class="ed-more">' +
-            '<button type="button" class="ed-btn ed-btn-ghost" data-act="up">⬆ הזז למעלה</button>' +
-            '<button type="button" class="ed-btn ed-btn-ghost" data-act="down">⬇ הזז למטה</button>' +
-            '<button type="button" class="ed-btn ed-btn-danger" data-act="delete">🗑 מחק</button>' +
-          '</div>') +
       '</form>', 'ed-modal-form');
     var el = m.el, form = $(el, 'form'), err = $(el, '.ed-error');
     form.elements.text.value = base.text;
@@ -784,9 +779,6 @@
       if (t.dataset.source) { form.elements.source.value = t.dataset.source; return; }
       switch (t.dataset.act) {
         case 'cancel': m.close(); break;
-        case 'delete': deleteReview(review).then(function (ok) { if (ok) m.close(); }); break;
-        case 'up': moveReview(review, -1).then(function (ok) { if (ok) m.close(); }); break;
-        case 'down': moveReview(review, 1).then(function (ok) { if (ok) m.close(); }); break;
       }
     });
 
@@ -824,10 +816,57 @@
         App.renderReviews();
         m.close();
         flash(saved.id);
-        toast(isNew ? 'חוות הדעת נוספה ✓' : 'נשמר ✓');
+        toast('חוות הדעת נוספה ✓');
       }, function (er) { btn.disabled = false; btn.textContent = '💾 שמור'; fail(er, 'לשמור'); });
     });
     setTimeout(function () { if (isNew) form.elements.text.focus(); }, 60);
+  }
+
+  /* חוות דעת קיימת: תצוגה בלבד. אפשר להזיז, להסתיר או למחוק, אבל לא לשנות טקסט וכוכבים */
+  function openReviewView(review) {
+    var who = review.author ? esc(review.author) + (review.source ? ' · ' + esc(review.source) : '') : esc(review.source || '');
+    var m = openModal(
+      '<div class="ed-form">' +
+        '<h2 class="ed-title">⭐ חוות דעת' + (review.author ? ' של ' + esc(review.author) : '') + '</h2>' +
+        '<p class="ed-text">חוות דעת של לקוחות לא ניתנות לעריכה, כדי שיישארו אמינות. אפשר להזיז, להסתיר או למחוק.</p>' +
+        '<div class="ed-quote">' +
+          '<div class="ed-quote-stars" aria-label="' + review.stars + ' כוכבים מתוך 5">' + '★★★★★☆☆☆☆☆'.slice(5 - review.stars, 10 - review.stars) + '</div>' +
+          '<div class="ed-quote-text">' + esc(review.text) + '</div>' +
+          (who ? '<div class="ed-quote-who">— ' + who + '</div>' : '') +
+        '</div>' +
+        '<label class="ed-switch"><input type="checkbox" name="on"><span class="ed-switch-ui"></span><span>להציג באתר</span></label>' +
+        '<div class="ed-more">' +
+          '<button type="button" class="ed-btn ed-btn-secondary" data-act="up">⬆ הזז למעלה</button>' +
+          '<button type="button" class="ed-btn ed-btn-secondary" data-act="down">⬇ הזז למטה</button>' +
+        '</div>' +
+        '<div class="ed-actions">' +
+          '<button type="button" class="ed-btn ed-btn-primary" data-act="cancel">סגור</button>' +
+          '<button type="button" class="ed-btn ed-btn-danger" data-act="delete">🗑 מחק</button>' +
+        '</div>' +
+      '</div>', 'ed-modal-form');
+    var el = m.el;
+    var on = $(el, 'input[name=on]');
+    on.checked = review.visible !== false;
+    on.addEventListener('change', function () {
+      var next = on.checked;
+      Store.saveReview(Object.assign({}, review, { visible: next })).then(function (saved) {
+        review = saved;
+        S.reviews = S.reviews.map(function (x) { return x.id === saved.id ? saved : x; });
+        App.renderReviews();
+        flash(saved.id);
+        toast(next ? 'חוות הדעת מוצגת באתר ✓' : 'חוות הדעת הוסתרה מהאתר');
+      }, function (er) { on.checked = !next; fail(er, 'לשמור'); });
+    });
+    el.addEventListener('click', function (e) {
+      var t = e.target.closest('button');
+      if (!t) return;
+      switch (t.dataset.act) {
+        case 'cancel': m.close(); break;
+        case 'delete': deleteReview(review).then(function (ok) { if (ok) m.close(); }); break;
+        case 'up': moveReview(review, -1).then(function (ok) { if (ok) m.close(); }); break;
+        case 'down': moveReview(review, 1).then(function (ok) { if (ok) m.close(); }); break;
+      }
+    });
   }
 
   function deleteReview(r) {
@@ -922,9 +961,9 @@
     if (t.hasAttribute('data-edit-review')) {
       var rid = t.getAttribute('data-edit-review');
       var rv = S.reviews.filter(function (x) { return x.id === rid; })[0];
-      if (rv) openReviewForm(rv);
+      if (rv) openReviewView(rv);
     } else if (t.hasAttribute('data-add-review')) {
-      openReviewForm(null);
+      openReviewForm();
     } else if (t.hasAttribute('data-edit')) {
       var id = t.getAttribute('data-edit');
       var d = S.dishes.filter(function (x) { return x.id === id; })[0];
