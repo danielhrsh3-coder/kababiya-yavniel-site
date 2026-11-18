@@ -487,7 +487,13 @@
     }
     function bytes(hex) { var a = new Uint8Array(hex.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(hex.substr(i * 2, 2), 16); return a; }
     function hex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
-    var secret = new TextEncoder().encode(String(user).trim().normalize('NFC') + '\u0000' + String(password));
+    // סובלני לשפת המקלדת: אותם מקשים בעברית ובאנגלית נחשבים זהים (למשל ג = d), לא רגיש לאותיות גדולות, ו-"." זהה ל-"/".
+    var HE = { 'ק': 'e', 'ר': 'r', 'א': 't', 'ט': 'y', 'ו': 'u', 'ן': 'i', 'ם': 'o', 'פ': 'p', 'ש': 'a', 'ד': 's', 'ג': 'd', 'כ': 'f', 'ע': 'g', 'י': 'h', 'ח': 'j', 'ל': 'k', 'ך': 'l', 'ף': ';', 'ז': 'z', 'ס': 'x', 'ב': 'c', 'ה': 'v', 'נ': 'b', 'מ': 'n', 'צ': 'm', 'ת': ',', 'ץ': '.' };
+    function canon(v) {
+      return String(v).normalize('NFC').replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').trim().toLowerCase()
+        .replace(/[\u05d0-\u05ea]/g, function (c) { return HE[c] || c; }).replace(/\./g, '/');
+    }
+    var secret = new TextEncoder().encode(canon(user) + '\u0000' + canon(password));
     return subtle.importKey('raw', secret, 'PBKDF2', false, ['deriveBits']).then(function (k) {
       return subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: bytes(pa.salt), iterations: pa.iter || 250000 }, k, 256);
     }).then(function (bits) {
