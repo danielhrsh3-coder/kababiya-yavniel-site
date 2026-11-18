@@ -898,3 +898,113 @@ a { color: inherit; text-decoration: none; }
 .legal-page li { margin-bottom: 10px; }
 .legal-page strong { color: #fff; }
 .legal-page a { color: var(--gold-light); text-decoration: underline; }
+
+/* ---------- מנה זמנית (תגית) ---------- */
+.dish-tag {
+  align-self: flex-start;
+  display: inline-block;
+  padding: 2px 11px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+.menu-list .dish-tag { margin-inline-end: 8px; }
+.dish-tag.is-temp { background: linear-gradient(90deg, var(--gold), #ffd166); color: #2b1a00; }
+.dish-tag.is-off { background: #444; color: #ddd; }
+.dish-tag.is-expired { background: var(--red-deep); color: #fff; }
+
+/* ---------- הודעה קופצת ללקוחות ---------- */
+body.popup-open { overflow: hidden; }
+.site-popup {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, .75);
+  animation: popup-fade .25s ease;
+}
+.site-popup-card {
+  width: min(440px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 24px 22px 22px;
+  text-align: center;
+  background: linear-gradient(160deg, #241f1c, #141210);
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+}
+.site-popup-logo {
+  width: 84px; height: 84px; margin: 0 auto 14px;
+  border-radius: 50%; object-fit: cover;
+  border: 3px solid var(--gold);
+}
+.site-popup-text {
+  margin: 0 0 20px;
+  font-size: 21px; font-weight: 700; line-height: 1.55;
+  white-space: pre-wrap;
+  color: var(--cream);
+}
+.site-popup-close { min-width: 160px; justify-content: center; border: 0; cursor: pointer; font-size: 18px; }
+@keyframes popup-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .site-popup { animation: none; } }
+
+/* ---------- כניסת בעלים (מנעול קטן בתחתית) ---------- */
+.owner-lock {
+  display: block;
+  margin: 22px auto 0;
+  padding: 12px;
+  background: none; border: 0;
+  color: #fff; opacity: .25;
+  cursor: pointer;
+}
+.owner-lock:hover, .owner-lock:focus-visible { opacity: .75; outline: none; }
+
+/* ---------- ספיישלים: קבוצה בולטת בראש התפריט ---------- */
+.menu-group-specials {
+  margin-bottom: 40px;
+  padding: 18px 18px 22px;
+  border: 2px solid var(--gold);
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(245,158,11,.14), rgba(139,0,0,.10));
+}
+.menu-group-specials h3 {
+  color: var(--gold-light);
+  border-bottom-color: rgba(245,158,11,.45);
+}
+.menu-dish.is-special {
+  border-color: var(--gold);
+  background: rgba(8,8,8,.6);
+}
+.dish-tag.is-future {
+  background: transparent;
+  border: 1.5px solid var(--gold);
+  color: var(--gold-light);
+}
+.menu-tab-special { border-color: var(--gold); color: var(--gold-light); }
+
+/* ---------- תמונה בהודעה הקופצת ---------- */
+.site-popup-img {
+  width: 100%;
+  max-height: 52vh;
+  margin: 0 auto 16px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: #000;
+}
+.site-popup-card.has-image { padding-top: 16px; }
+
+.menu-group-specials .menu-dish-list { grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
+.placeholder-special { color: var(--gold-light); }
+@media (max-width: 480px) {
+  .menu-group-specials { padding: 14px 12px 16px; }
+}
+
+.review-link {
+  display: block;
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 14px;
+  color: var(--gold-light);
+  text-decoration: underline;
+}

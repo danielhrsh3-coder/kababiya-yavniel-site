@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="config.js"></script>
+<script>(function(){var l=location,c=window.KABABIA_CONFIG||{};var all=!!c.gateAll;if(all||/(^|[?&])edit(=|&|$)/.test(l.search)||l.hash==='#edit'){var h=document.documentElement;h.className+=' ed-gate';if(!all)setTimeout(function(){h.className=h.className.replace(' ed-gate','')},20000);}})();</script>
+<style>html.ed-gate,html.ed-gate body{background:#000!important}html.ed-gate body{visibility:hidden}html.ed-gate .ed-overlay{visibility:visible}</style>
 <title>הקבביה ביבניאל | בטעם של עוד...</title>
 <meta name="description" content="הקבביה ביבניאל - עגלת אוכל בשרית כשרה למהדרין. קבב, המבורגר, שניצל, חומוס ועוד. משלוחים ביבניאל והסביבה.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -123,6 +126,7 @@
         <button type="button" class="menu-tab" role="tab" aria-selected="false" data-filter="drinks">שתייה</button>
       </div>
 
+      <div id="menu-body">
       <div class="menu-group menu-group-main" data-cat="grill hummus">
         <h3>מנות עיקריות</h3>
         <div class="menu-dish-list">
@@ -275,6 +279,7 @@
           </ul>
         </div>
       </div>
+      </div>
     </div>
   </section>
 
@@ -303,7 +308,7 @@
   <section class="reviews" id="reviews">
     <div class="section-inner">
       <h2 class="section-title">מה אומרים עלינו</h2>
-      <div class="reviews-grid">
+      <div class="reviews-grid" id="reviews-grid">
         <div class="review-card is-long">
           <div class="review-stars" role="img" aria-label="5 כוכבים מתוך 5">★★★★★</div>
           <p class="review-text">⭐ המלצה מכל הלב על שיפודיית הקבביה מיבניאל! ⭐
@@ -464,46 +469,10 @@
   </a>
 </nav>
 
+<script src="data.js"></script>
+<script src="menu.js"></script>
+
 <script>
-(function () {
-  var tabs = document.querySelectorAll('.menu-tab');
-  var dishes = document.querySelectorAll('.menu-dish');
-  var groups = document.querySelectorAll('.menu-group[data-cat], .fillings[data-cat]');
-
-  function matches(el, filter) {
-    return filter === 'all' || el.dataset.cat.split(' ').indexOf(filter) !== -1;
-  }
-
-  function apply(filter) {
-    dishes.forEach(function (dish) {
-      dish.hidden = !matches(dish, filter);
-    });
-    // hide a whole group once nothing inside it is left showing
-    groups.forEach(function (group) {
-      var own = matches(group, filter);
-      var list = group.querySelector('.menu-dish-list');
-      if (list) {
-        own = Array.prototype.some.call(
-          list.querySelectorAll('.menu-dish'),
-          function (d) { return !d.hidden; }
-        );
-      }
-      group.hidden = !own;
-    });
-    tabs.forEach(function (tab) {
-      var on = tab.dataset.filter === filter;
-      tab.classList.toggle('is-active', on);
-      tab.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-  }
-
-  tabs.forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      apply(tab.dataset.filter);
-    });
-  });
-})();
-
 /* באדג' "פתוח עכשיו" - מחושב לפי שעון ישראל, כך שגם גולש מחו"ל רואה סטטוס נכון.
    שינוי שעות? לעדכן גם את הטבלה בסקשן "הוראות הגעה". */
 (function () {

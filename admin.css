@@ -1,0 +1,280 @@
+/* admin.css - עיצוב מצב העריכה (נטען רק כשבעל העסק עורך).
+   גדול, ברור, ועם כפתורים נוחים ללחיצה באצבע. */
+
+body.ed-on { padding-bottom: 108px; }
+body.ed-on .action-bar { display: none !important; }
+body.ed-lock { overflow: hidden; }
+
+/* ---------- פס עליון ---------- */
+.ed-ribbon {
+  background: #1d1a14;
+  border-bottom: 3px solid var(--gold);
+  color: var(--cream);
+  padding: 12px 16px;
+  font-size: 16px;
+  line-height: 1.55;
+  text-align: center;
+}
+.ed-ribbon-main strong { color: var(--gold-light); font-size: 18px; }
+.ed-ribbon-note { margin-top: 8px; font-size: 14.5px; color: #cfc7ba; }
+.ed-ribbon-note.is-warn { color: #ffc2b8; }
+
+/* ---------- כפתורים קבועים בתחתית ---------- */
+.ed-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 300;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(8, 8, 8, .97);
+  border-top: 2px solid var(--gold);
+}
+.ed-bar-btn {
+  flex: 1;
+  max-width: 230px;
+  min-height: 56px;
+  border-radius: 14px;
+  border: 2px solid rgba(245, 158, 11, .5);
+  background: var(--charcoal);
+  color: var(--cream);
+  font: 800 16.5px 'Heebo', sans-serif;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer;
+}
+.ed-bar-btn span { font-size: 20px; }
+.ed-bar-main { background: var(--gold); border-color: var(--gold); color: #2b1a00; }
+.ed-bar-exit { flex: 0 0 auto; padding: 0 16px; border-color: #5a5045; color: #ddd; }
+
+/* ---------- עיפרון על כל מנה ---------- */
+.ed-pencil {
+  flex: 0 0 auto;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  border: 2px solid #2b1a00;
+  background: var(--gold);
+  color: #2b1a00;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .55);
+}
+.ed-pencil:hover, .ed-pencil:focus-visible { background: var(--gold-light); outline: none; }
+.menu-dish .ed-pencil { margin-inline-start: auto; }
+.menu-list .ed-pencil { width: 40px; height: 40px; }
+.menu-list .ed-pencil svg { width: 19px; height: 19px; }
+.ed-li-end { display: inline-flex; align-items: center; gap: 12px; }
+.menu-list li { align-items: center; }
+
+.ed-on .menu-dish:hover { transform: none; }
+.ed-on .menu-dish.is-off,
+.ed-on .menu-list li.is-off { opacity: .5; }
+.ed-on .menu-dish.is-off { border-style: dashed; }
+
+.ed-on .fillings { position: relative; }
+.ed-on .fillings > .ed-pencil { position: absolute; top: 12px; left: 12px; }
+
+/* ---------- הוספה ---------- */
+.ed-add-tile {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%;
+  min-height: 100px;
+  border: 2px dashed rgba(245, 158, 11, .65);
+  border-radius: var(--radius);
+  background: rgba(245, 158, 11, .07);
+  color: var(--gold-light);
+  font: 800 20px 'Heebo', sans-serif;
+  cursor: pointer;
+}
+.ed-add-tile span { font-size: 30px; line-height: 1; }
+.ed-add-tile:hover, .ed-add-tile:focus-visible { background: rgba(245, 158, 11, .16); outline: none; }
+.ed-add-small { min-height: 54px; font-size: 17px; }
+.ed-add-small span { font-size: 24px; }
+.menu-list .ed-add-li { display: block; border-bottom: 0; padding-top: 14px; }
+
+.ed-flash { animation: ed-flash 2.2s ease; }
+@keyframes ed-flash {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  20%, 60% { box-shadow: 0 0 0 6px rgba(245, 158, 11, .8); }
+}
+
+/* ---------- חלונות ---------- */
+.ed-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0, 0, 0, .8);
+  display: flex; align-items: flex-start; justify-content: center;
+  overflow-y: auto;
+  padding: 14px;
+  -webkit-overflow-scrolling: touch;
+}
+.ed-modal {
+  width: min(560px, 100%);
+  margin: auto;
+  background: #171411;
+  border: 2px solid var(--gold);
+  border-radius: 18px;
+  padding: 22px 20px 20px;
+  color: var(--cream);
+  font-size: 18px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .7);
+}
+.ed-modal-small { width: min(440px, 100%); }
+.ed-title { font-size: 27px; color: var(--gold-light); margin: 0 0 16px; font-weight: 400; }
+.ed-text { margin: 0 0 16px; color: #cfc7ba; font-size: 16px; line-height: 1.65; }
+.ed-note { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: #2a2218; color: #ffe2a8; font-size: 15.5px; }
+
+.ed-field { display: block; margin: 0 0 20px; border: 0; padding: 0; }
+.ed-label { display: block; font-weight: 800; font-size: 17.5px; margin-bottom: 8px; }
+.ed-label small { font-weight: 400; color: #a79f93; font-size: 14px; }
+
+.ed-input {
+  width: 100%;
+  min-height: 54px;
+  padding: 10px 14px;
+  background: #0d0b09;
+  color: var(--cream);
+  border: 2px solid #4a4036;
+  border-radius: 12px;
+  font: 500 18px 'Heebo', sans-serif;
+}
+.ed-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245, 158, 11, .25); }
+.ed-textarea { resize: vertical; min-height: 110px; line-height: 1.55; }
+.ed-single, .ed-size-row { display: flex; align-items: center; gap: 10px; }
+.ed-price { max-width: 130px; text-align: center; direction: ltr; font-weight: 800; }
+.ed-size-row { margin-bottom: 10px; }
+.ed-size-row .ed-input:first-child { flex: 1; min-width: 0; }
+.ed-shekel { font-size: 22px; font-weight: 800; color: var(--price); }
+.ed-x {
+  flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%;
+  border: 0; background: #2b2520; color: #ddd; font-size: 17px; cursor: pointer;
+}
+.ed-link {
+  display: inline-block;
+  background: none; border: 0; padding: 10px 0;
+  color: var(--gold-light); text-decoration: underline;
+  font: 700 16px 'Heebo', sans-serif; cursor: pointer;
+}
+
+/* ---------- תמונה ---------- */
+.ed-photo { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.ed-photo-preview {
+  flex: 0 0 auto; width: 110px; height: 110px; border-radius: 50%; overflow: hidden;
+  border: 2px solid var(--wood-dark); background: #0d0b09;
+  display: flex; align-items: center; justify-content: center;
+  color: #8a8278; font-size: 14px;
+}
+.ed-photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+.ed-photo-btns { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+
+/* ---------- בחירות ---------- */
+.ed-chips, .ed-date-quick { display: flex; flex-wrap: wrap; gap: 10px; }
+.ed-chip {
+  min-height: 48px; padding: 0 18px; border-radius: 999px;
+  border: 2px solid #5a5045; background: #0d0b09; color: var(--cream);
+  font: 700 17px 'Heebo', sans-serif; cursor: pointer;
+}
+.ed-chip.is-on { background: var(--gold); border-color: var(--gold); color: #2b1a00; }
+
+.ed-cards { display: flex; flex-direction: column; gap: 10px; }
+.ed-card {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 66px; padding: 10px 14px;
+  border: 2px solid #4a4036; border-radius: 12px; background: #0d0b09; cursor: pointer;
+}
+.ed-card input { flex: 0 0 auto; width: 24px; height: 24px; accent-color: var(--gold); }
+.ed-card b { display: block; font-size: 18px; }
+.ed-card small { display: block; color: #a79f93; font-size: 14px; line-height: 1.4; }
+.ed-card:has(input:checked) { border-color: var(--gold); background: #241b0c; }
+.ed-date { padding: 12px 14px; border: 2px dashed #5a5045; border-radius: 12px; }
+.ed-date-pick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 16px; }
+.ed-date-pick .ed-input { width: auto; flex: 1; min-width: 170px; direction: ltr; }
+.ed-field > .ed-input[type=date] { direction: ltr; margin-top: 10px; }
+
+.ed-switch { display: flex; align-items: center; gap: 12px; margin: 0 0 20px; font-weight: 800; font-size: 18px; cursor: pointer; position: relative; }
+.ed-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ed-switch-ui { flex: 0 0 auto; width: 58px; height: 32px; border-radius: 999px; background: #4a4036; position: relative; transition: background .2s; }
+.ed-switch-ui::after {
+  content: ''; position: absolute; top: 3px; right: 3px;
+  width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: right .2s;
+}
+.ed-switch input:checked + .ed-switch-ui { background: #1fa855; }
+.ed-switch input:checked + .ed-switch-ui::after { right: 29px; }
+.ed-switch input:focus-visible + .ed-switch-ui { outline: 3px solid var(--gold-light); }
+
+/* ---------- כפתורי פעולה ---------- */
+.ed-btn {
+  min-height: 56px; padding: 0 22px; border-radius: 14px;
+  border: 2px solid transparent;
+  font: 800 18px 'Heebo', sans-serif; cursor: pointer;
+}
+.ed-btn:disabled { opacity: .6; cursor: default; }
+.ed-btn-primary { background: #1fa855; color: #fff; flex: 1 1 140px; }
+.ed-btn-secondary { background: #2a2218; border-color: var(--gold); color: var(--gold-light); }
+.ed-btn-ghost { background: transparent; border-color: #5a5045; color: var(--cream); }
+.ed-btn-danger { background: #8b1212; color: #fff; }
+.ed-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.ed-more { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; padding-top: 20px; border-top: 1px dashed #4a4036; }
+.ed-more .ed-btn { flex: 1 1 120px; font-size: 16px; padding: 0 12px; }
+.ed-error {
+  margin: 0 0 14px; padding: 10px 14px; border-radius: 10px;
+  background: #4a1010; border: 1px solid #a33; color: #ffd2cc; font: 700 16px 'Heebo', sans-serif;
+}
+
+/* ---------- הודעות קטנות ---------- */
+.ed-toasts {
+  position: fixed; top: 12px; left: 0; right: 0; z-index: 1200;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 0 12px; pointer-events: none;
+}
+.ed-toast {
+  background: #1fa855; color: #fff; font: 800 18px 'Heebo', sans-serif;
+  padding: 12px 24px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, .5);
+  max-width: 100%; text-align: center;
+}
+.ed-toast.is-error { background: #b3261e; border-radius: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ed-flash { animation: none; outline: 4px solid var(--gold); }
+  .ed-switch-ui, .ed-switch-ui::after { transition: none; }
+}
+
+/* תצוגה מקדימה של ההודעה הקופצת חייבת להיות מעל חלון העריכה */
+body.ed-on .site-popup { z-index: 1100; }
+
+/* הפס מופיע ממש מעל התפריט, כדי שיראו אותו מיד בכניסה */
+.menu > .ed-ribbon { margin: 0; }
+
+/* ---------- חוות דעת ---------- */
+.ed-on .review-card { position: relative; }
+.review-card .ed-pencil { position: absolute; top: 10px; left: 10px; width: 42px; height: 42px; }
+.ed-on .review-card.is-off { opacity: .5; border-style: dashed; }
+.review-card .dish-tag { display: inline-block; margin-top: 8px; }
+.ed-stars { display: flex; gap: 6px; }
+.ed-star {
+  width: 54px; height: 54px; border-radius: 12px;
+  border: 2px solid #5a5045; background: #0d0b09; color: #5a5045;
+  font-size: 28px; line-height: 1; cursor: pointer;
+}
+.ed-star.is-on { color: var(--gold); border-color: var(--gold); background: #241b0c; }
+.ed-source-quick { margin-top: 10px; }
+
+/* ---------- ספיישל: טווח תאריכים ---------- */
+.ed-date .ed-date-pick { display: block; margin-top: 12px; font-size: 16px; }
+.ed-date .ed-date-pick span { display: block; font-weight: 700; margin-bottom: 6px; }
+.ed-date .ed-date-pick small { font-weight: 400; color: #a79f93; }
+.ed-date .ed-date-pick .ed-input { width: 100%; min-width: 0; flex: none; direction: ltr; }
+
+/* ---------- תמונה בהודעה הקופצת ---------- */
+.ed-photo-rect { width: 150px; height: 110px; border-radius: 12px; }
+
+.ed-hint { display: block; margin-top: 8px; font-size: 14px; line-height: 1.5; color: #a79f93; font-weight: 400; }
+
+/* ---------- חוות דעת: תצוגה בלבד ---------- */
+.ed-quote { margin: 0 0 20px; padding: 16px 18px; border: 1px solid rgba(232,161,60,.3); border-radius: 12px; background: #0d0b09; text-align: center; max-height: 38vh; overflow: auto; }
+.ed-quote-stars { color: var(--gold); letter-spacing: 3px; font-size: 18px; margin-bottom: 8px; }
+.ed-quote-text { white-space: pre-line; line-height: 1.7; font-size: 16px; color: #e6e0d6; }
+.ed-quote-who { margin-top: 10px; color: var(--gold-light); font-weight: 700; font-size: 14px; }
+
+/* ---------- מסך כניסה: שחור מלא, רק חלון ההתחברות במרכז ---------- */
+.ed-overlay.ed-gate-ov { background: #000; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ed-overlay.ed-gate-ov { z-index: 2147483000; }
