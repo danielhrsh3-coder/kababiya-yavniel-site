@@ -274,3 +274,7 @@ body.ed-on .site-popup { z-index: 1100; }
 .ed-quote-stars { color: var(--gold); letter-spacing: 3px; font-size: 18px; margin-bottom: 8px; }
 .ed-quote-text { white-space: pre-line; line-height: 1.7; font-size: 16px; color: #e6e0d6; }
 .ed-quote-who { margin-top: 10px; color: var(--gold-light); font-weight: 700; font-size: 14px; }
+
+/* ---------- מסך כניסה: שחור מלא, רק חלון ההתחברות במרכז ---------- */
+.ed-overlay.ed-gate-ov { background: #000; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ed-overlay.ed-gate-ov { z-index: 2147483000; }

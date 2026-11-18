@@ -55,9 +55,9 @@
   }
 
   /* ---------- חלון קופץ ---------- */
-  function openModal(html, cls) {
+  function openModal(html, cls, ovCls) {
     var ov = doc.createElement('div');
-    ov.className = 'ed-overlay';
+    ov.className = 'ed-overlay' + (ovCls ? ' ' + ovCls : '');
     ov.innerHTML = '<div class="ed-modal ' + (cls || '') + '" role="dialog" aria-modal="true">' + html + '</div>';
     doc.body.appendChild(ov);
     doc.body.classList.add('ed-lock');
@@ -213,7 +213,7 @@
             '<button type="submit" class="ed-btn ed-btn-primary">כניסה</button>' +
             '<button type="button" class="ed-btn ed-btn-ghost" data-cancel>ביטול</button>' +
           '</div>' +
-        '</form>', 'ed-modal-small');
+        '</form>', 'ed-modal-small', /\bed-gate\b/.test(doc.documentElement.className) ? 'ed-gate-ov' : '');
       var form = $(m.el, 'form');
       var email = form.elements.email, pass = form.elements.password;
       var err = $(m.el, '.ed-error');

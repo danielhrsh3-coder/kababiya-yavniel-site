@@ -385,13 +385,22 @@
     return adminAssets;
   }
 
+  /* מסך שחור מלא בזמן הכניסה לעריכה: לפני ההתחברות לא רואים כלום מהאתר, רק את חלון הכניסה */
+  function gate(on) {
+    var h = doc.documentElement;
+    if (on) { if (!/\bed-gate\b/.test(h.className)) h.className += ' ed-gate'; }
+    else h.className = h.className.replace(/\s*\bed-gate\b/g, '');
+  }
+
   function startEdit() {
+    gate(true);
     return loadAdminAssets().then(function () {
       return global.KababiaAdmin.start(App);
     }).catch(function (e) {
       if (global.console) console.error(e);
+      gate(false);
       alertFallback('לא הצלחנו לפתוח את מצב העריכה. בדוק חיבור לאינטרנט ונסה שוב.');
-    });
+    }).then(function () { gate(false); });
   }
   function alertFallback(msg) { try { global.alert(msg); } catch (e) {} }
 
