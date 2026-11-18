@@ -1,7 +1,7 @@
 /* data.js - נתוני התפריט ושכבת האחסון.
    שני מצבים:
    1. חי (Supabase) - כשמולאו הערכים ב-config.js. הנתונים נשמרים בענן וכל גולש רואה אותם.
-   2. הדגמה - כשאין חיבור. התפריט הקיים מוצג, ועריכה נשמרת רק בדפדפן הזה.
+   2. בלי חיבור - מוצג התפריט הקיים, ועריכה אפשרית רק בתצוגה מקדימה מקומית.
    הקוד כתוב בלי ספריות חיצוניות, ישירות מול ה-API של Supabase. */
 (function (global) {
   'use strict';
@@ -10,7 +10,6 @@
   var LIVE = !!(CFG.supabaseUrl && CFG.supabaseKey);
   var BASE = LIVE ? String(CFG.supabaseUrl).replace(/\/+$/, '') : '';
   var BUCKET = 'dish-images';
-  var DEMO_PASSWORD = '1234';
 
   /* ---------- localStorage (עוטף, כי לפעמים הוא חסום) ---------- */
   function lsGet(key) {
@@ -399,7 +398,7 @@
   }
 
   /* ======================================================================
-     מצב הדגמה: הכול בדפדפן
+     אחסון מקומי (תצוגה מקדימה): הכול בדפדפן
      ====================================================================== */
   function demoState() {
     var s = lsGet('demo');
@@ -477,10 +476,24 @@
     });
   }
 
-  function demoLogin(email, password) {
-    if (password === DEMO_PASSWORD) { lsSet('demo_auth', true); return Promise.resolve(); }
-    var e = new Error('bad credentials'); e.badCredentials = true;
-    return Promise.reject(e);
+  // כניסה מקומית: בודקת מול טביעה (PBKDF2) שמוגדרת ב-config.js של התצוגה המקדימה בלבד.
+  // בלי הגדרה כזו אי אפשר להיכנס, ואין שום סיסמה בקוד.
+  function demoLogin(user, password) {
+    var pa = CFG.previewAuth;
+    var subtle = global.crypto && global.crypto.subtle;
+    if (!pa || !pa.hash || !pa.salt || !subtle) {
+      var n = new Error('not configured'); n.notConfigured = true;
+      return Promise.reject(n);
+    }
+    function bytes(hex) { var a = new Uint8Array(hex.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(hex.substr(i * 2, 2), 16); return a; }
+    function hex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
+    var secret = new TextEncoder().encode(String(user).trim().normalize('NFC') + '\u0000' + String(password));
+    return subtle.importKey('raw', secret, 'PBKDF2', false, ['deriveBits']).then(function (k) {
+      return subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: bytes(pa.salt), iterations: pa.iter || 250000 }, k, 256);
+    }).then(function (bits) {
+      if (hex(bits) === String(pa.hash)) { lsSet('demo_auth', true); return; }
+      var e = new Error('bad credentials'); e.badCredentials = true; throw e;
+    });
   }
 
   /* ======================================================================
@@ -488,7 +501,6 @@
      ====================================================================== */
   var Store = {
     live: LIVE,
-    demoPassword: DEMO_PASSWORD,
     todayIL: todayIL,
     addDays: addDays,
     seedDishes: seedDishes,
@@ -540,8 +552,7 @@
     },
     logout: function () {
       if (LIVE) clearSession(); else lsDel('demo_auth');
-    },
-    resetDemo: function () { lsDel('demo'); }
+    }
   };
 
   global.KababiaStore = Store;

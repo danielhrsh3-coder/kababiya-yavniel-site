@@ -202,13 +202,13 @@
     return new Promise(function (resolve) {
       var live = Store.live;
       var saved = '';
-      try { saved = global.localStorage.getItem('kababia.email') || ''; } catch (e) {}
+      if (CFG.rememberLogin !== false) { try { saved = global.localStorage.getItem('kababia.email') || ''; } catch (e) {} }
       var m = openModal(
         '<form class="ed-form" novalidate>' +
           '<h2 class="ed-title">🔒 כניסה לעריכת האתר</h2>' +
-          (live ? '' : '<p class="ed-note">מצב הדגמה: כל אימייל מתאים, והסיסמה היא <b>' + esc(Store.demoPassword) + '</b></p>') +
-          '<label class="ed-field"><span class="ed-label">אימייל</span>' +
-            '<input class="ed-input" name="email" type="email" autocomplete="username" inputmode="email" dir="ltr"></label>' +
+          '<label class="ed-field"><span class="ed-label">' + (live ? 'אימייל' : 'שם משתמש') + '</span>' +
+            (live ? '<input class="ed-input" name="email" type="email" autocomplete="username" inputmode="email" dir="ltr">'
+                  : '<input class="ed-input" name="email" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" dir="auto">') + '</label>' +
           '<label class="ed-field"><span class="ed-label">סיסמה</span>' +
             '<input class="ed-input" name="password" type="password" autocomplete="current-password" dir="ltr"></label>' +
           '<p class="ed-error" role="alert" hidden></p>' +
@@ -222,7 +222,7 @@
       var err = $(m.el, '.ed-error');
       var done = false;
       function finish(v) { if (done) return; done = true; m.close(); resolve(v); }
-      email.value = saved || (live ? '' : 'owner@demo');
+      email.value = saved;
       setTimeout(function () { (email.value ? pass : email).focus(); }, 50);
       m.onClose = function () { finish(false); };
       var cancelBtn = $(m.el, '[data-cancel]');
@@ -233,11 +233,13 @@
         var btn = $(m.el, '.ed-btn-primary');
         btn.disabled = true; btn.textContent = 'נכנס…';
         Store.login(email.value.trim(), pass.value).then(function () {
-          try { global.localStorage.setItem('kababia.email', email.value.trim()); } catch (x) {}
+          if (CFG.rememberLogin !== false) { try { global.localStorage.setItem('kababia.email', email.value.trim()); } catch (x) {} }
           finish(true);
         }, function (er) {
           btn.disabled = false; btn.textContent = 'כניסה';
-          err.textContent = er && er.badCredentials ? 'האימייל או הסיסמה לא נכונים' : 'לא הצלחנו להתחבר. בדוק חיבור לאינטרנט ונסה שוב.';
+          err.textContent = er && er.badCredentials ? (live ? 'האימייל או הסיסמה לא נכונים' : 'שם המשתמש או הסיסמה לא נכונים')
+            : er && er.notConfigured ? 'העריכה עדיין לא חוברה לשרת.'
+            : 'לא הצלחנו להתחבר. בדוק חיבור לאינטרנט ונסה שוב.';
           err.hidden = false;
         });
       });
@@ -920,10 +922,6 @@
     r.className = 'ed-ribbon';
     var html = '<div class="ed-ribbon-main"><strong>✏️ מצב עריכה</strong> ' +
       'לחץ על העיפרון ליד כל מנה כדי לשנות אותה, או על "הוסף מנה". כל שינוי מופיע באתר מיד.</div>';
-    if (!Store.live) {
-      html += '<div class="ed-ribbon-note">מצב הדגמה: השינויים נשמרים רק בדפדפן הזה ולא באתר האמיתי. ' +
-        '<button type="button" class="ed-link" data-bar="reset">איפוס להדגמה</button></div>';
-    }
     if (S.offline) {
       html += '<div class="ed-ribbon-note is-warn">לא הצלחנו להתחבר לשרת, ושינויים לא יישמרו. ' +
         '<button type="button" class="ed-link" data-bar="retry">נסה שוב</button></div>';
@@ -996,9 +994,6 @@
         Store.importSeed().then(function () { return App.reload(); }).then(function () {
           buildChrome(); App.render(); toast('התפריט יובא ✓');
         }, function (er) { t.disabled = false; t.textContent = 'ייבא את התפריט הקיים'; fail(er, 'לייבא'); });
-      } else if (act === 'reset') {
-        confirmDialog({ title: 'לאפס את ההדגמה?', text: 'כל השינויים שעשית בדפדפן הזה יימחקו והתפריט יחזור למקור.', ok: 'כן, אפס', danger: true })
-          .then(function (yes) { if (yes) { Store.resetDemo(); global.location.reload(); } });
       }
     }
   }
