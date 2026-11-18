@@ -278,3 +278,45 @@ body.ed-on .site-popup { z-index: 1100; }
 /* ---------- מסך כניסה: שחור מלא, רק חלון ההתחברות במרכז ---------- */
 .ed-overlay.ed-gate-ov { background: #000; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .ed-overlay.ed-gate-ov { z-index: 2147483000; }
+
+
+/* ---------- שעות פתיחה ---------- */
+.ed-sub { font-size: 20px; color: var(--gold-light); margin: 22px 0 10px; font-weight: 800; }
+.ed-sub small { font-weight: 400; color: #a79f93; font-size: 14px; }
+.ed-text-small { font-size: 14.5px; margin: 0 0 12px; color: #a79f93; }
+.ed-hours-list { display: flex; flex-direction: column; gap: 8px; }
+.ed-hours-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 12px; border: 2px solid #4a4036; border-radius: 12px; background: #0d0b09;
+}
+.ed-hours-row .ed-switch { margin: 0; flex: 1 1 130px; font-size: 18px; }
+.ed-hours-times, .ed-ovr-times { display: flex; align-items: center; gap: 6px; }
+.ed-hours-times { flex: 1 1 100%; }
+.ed-hours-times .ed-input, .ed-ovr-times .ed-input { flex: 1 1 0; min-width: 0; width: auto; min-height: 48px; padding: 6px 6px; direction: ltr; text-align: center; font-size: 17px; }
+.ed-ovr-times { margin-top: 10px; }
+.ed-hours-closed { display: none; color: #a79f93; font-weight: 700; padding: 0 10px; }
+.ed-hours-row.is-off .ed-hours-times { display: none; }
+.ed-hours-row.is-off .ed-hours-closed { display: inline; }
+.ed-hours-row.is-off { border-style: dashed; }
+.ed-ovr-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.ed-ovr-empty { margin: 0; color: #a79f93; font-size: 15.5px; }
+.ed-ovr-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px; border: 2px solid #4a4036; border-radius: 12px; background: #0d0b09;
+}
+.ed-ovr-main b { display: block; font-size: 17.5px; }
+.ed-ovr-main span { color: #cfc7ba; font-size: 15.5px; }
+.ed-ovr-form { margin-top: 14px; padding: 14px; border: 2px dashed #5a5045; border-radius: 12px; }
+.ed-ovr-form[hidden], .ed-ovr-times[hidden] { display: none; }
+.ed-actions-end { margin-top: 18px; }
+
+/* ארבעה כפתורים בתחתית: אייקון מעל הטקסט במסכים צרים */
+@media (max-width: 560px) {
+  .ed-bar { gap: 6px; padding-left: 8px; padding-right: 8px; }
+  .ed-bar-btn {
+    flex-direction: column; gap: 2px; padding: 4px 4px;
+    font-size: 13.5px; line-height: 1.15; min-height: 60px; text-align: center;
+  }
+  .ed-bar-btn span { font-size: 20px; line-height: 1; }
+  .ed-bar-exit { padding: 4px 10px; }
+}

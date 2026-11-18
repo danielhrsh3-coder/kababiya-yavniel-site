@@ -1008,3 +1008,17 @@ body.popup-open { overflow: hidden; }
   color: var(--gold-light);
   text-decoration: underline;
 }
+
+/* שינויים זמניים בשעות הפתיחה (מוצגים רק כשיש כאלה) */
+.hours-notes {
+  margin: 10px 0 4px;
+  padding: 10px 14px;
+  border: 1px solid rgba(245, 158, 11, .45);
+  border-radius: 10px;
+  background: rgba(245, 158, 11, .08);
+  font-size: 15px;
+}
+.hours-notes[hidden] { display: none; }
+.hours-notes-title { margin: 0 0 4px; font-weight: 700; color: var(--gold-light); }
+.hours-notes ul { margin: 0; padding: 0; list-style: none; }
+.hours-notes li { padding: 3px 0; color: #ddd; }

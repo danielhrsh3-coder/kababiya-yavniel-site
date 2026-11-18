@@ -127,6 +127,8 @@
     popup_text: '',
     popup_until: null,
     popup_image: '',
+    hours: null,            // null = ברירת המחדל שב-hours.js
+    hours_overrides: [],    // שינויים זמניים: [{from, to, closed, open, close, note}]
     salads: 'עגבניות · מלפפונים · חמוצים · חסה · סלט חריף · מטבוחה · חומוס · בצל · חריף · כרוב לבן',
     sauces: 'שום · אלף האיים · שזיפים · צ\'ילי מתוק · עמבה · ברביקיו · מיונז · טחינה · קטשופ'
   };
@@ -187,6 +189,8 @@
     Object.keys(out).forEach(function (k) {
       if (row[k] !== undefined && row[k] !== null) out[k] = row[k];
     });
+    if (out.hours && typeof out.hours !== 'object') out.hours = null;
+    if (!Array.isArray(out.hours_overrides)) out.hours_overrides = [];
     return out;
   }
 
@@ -362,6 +366,13 @@
       .then(function (rows) { return mergeSettings(Array.isArray(rows) ? rows[0] : rows); });
   }
 
+  function liveSaveHours(h) {
+    var body = { id: 1, hours: h.hours === undefined ? null : h.hours, hours_overrides: h.hours_overrides || [] };
+    return rest('POST', '/rest/v1/site_settings?on_conflict=id', body,
+      { Prefer: 'resolution=merge-duplicates,return=representation' })
+      .then(function (rows) { return mergeSettings(Array.isArray(rows) ? rows[0] : rows); });
+  }
+
   function liveUpload(blob) {
     var name = Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + '.jpg';
     return call(function () {
@@ -467,6 +478,15 @@
     });
   }
 
+  function demoSaveHours(h) {
+    return new Promise(function (resolve) {
+      var s = demoState();
+      s.settings = mergeSettings(Object.assign({}, s.settings, { hours: h.hours, hours_overrides: h.hours_overrides }));
+      demoPersist(s);
+      resolve(s.settings);
+    });
+  }
+
   function blobToDataURL(blob) {
     return new Promise(function (resolve, reject) {
       var fr = new FileReader();
@@ -530,6 +550,7 @@
     saveReview: function (r) { return LIVE ? liveSaveReview(r) : demoSaveReview(r); },
     deleteReview: function (id) { return LIVE ? liveDeleteReview(id) : demoDeleteReview(id); },
     saveSettings: function (s) { return LIVE ? liveSaveSettings(s) : demoSaveSettings(s); },
+    saveHours: function (h) { return LIVE ? liveSaveHours(h) : demoSaveHours(h); },
     uploadImage: function (blob) { return LIVE ? liveUpload(blob) : blobToDataURL(blob); },
 
     importSeed: function () {

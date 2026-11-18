@@ -1,7 +1,7 @@
 /* admin.js - מצב עריכה לבעל העסק.
    נטען רק כשמבקשים עריכה (לחיצה על המנעול בתחתית האתר, או ?edit=1 בכתובת).
    העריכה נעשית על האתר עצמו, בדיוק כמו שהלקוחות רואים אותו:
-   עיפרון ליד כל מנה, כפתור "הוסף מנה", הודעה קופצת, וסלטים/רטבים. */
+   עיפרון ליד כל מנה, כפתור "הוסף מנה", הודעה קופצת, שעות פתיחה, וסלטים/רטבים. */
 (function (global) {
   'use strict';
 
@@ -690,6 +690,174 @@
   }
 
   /* ======================================================================
+     שעות פתיחה: קבועות לכל יום + שינויים זמניים (חג, חופשה, יום קצר)
+     ====================================================================== */
+  function openHoursForm() {
+    var H = global.KababiaHours;
+    if (!H) { toast('מסך השעות לא נטען, רענן את הדף ונסה שוב', 'error'); return; }
+    var today = Store.todayIL();
+    var weekly = H.normHours(S.settings.hours);
+    var overrides = H.normOverrides(S.settings.hours_overrides).filter(function (o) { return o.to >= today; });
+    var addMode = 'closed';
+
+    var rows = H.DAY_NAMES.map(function (name, d) {
+      var w = weekly[d];
+      return '<div class="ed-hours-row" data-d="' + d + '">' +
+        '<label class="ed-switch"><input type="checkbox" data-on' + (w ? ' checked' : '') + '><span class="ed-switch-ui"></span><span>' + name + '</span></label>' +
+        '<span class="ed-hours-times" dir="ltr">' +
+          '<input class="ed-input" type="time" data-open aria-label="פתיחה ב' + name + '" value="' + (w ? w.open : '12:00') + '">' +
+          '<span aria-hidden="true">–</span>' +
+          '<input class="ed-input" type="time" data-close aria-label="סגירה ב' + name + '" value="' + (w ? w.close : '22:00') + '">' +
+        '</span>' +
+        '<span class="ed-hours-closed">סגור</span>' +
+      '</div>';
+    }).join('');
+
+    var m = openModal(
+      '<form class="ed-form" novalidate>' +
+        '<h2 class="ed-title">🕐 שעות פתיחה</h2>' +
+        '<p class="ed-text">השעות מופיעות באתר, והן קובעות מתי כתוב "פתוח עכשיו". הכול לפי שעון ישראל.</p>' +
+        '<h3 class="ed-sub">שעות קבועות</h3>' +
+        '<div class="ed-hours-list">' + rows + '</div>' +
+        '<h3 class="ed-sub">שינוי זמני <small>(חג, חופשה, יום קצר)</small></h3>' +
+        '<p class="ed-text ed-text-small">שינוי זמני גובר על השעות הקבועות בתאריכים שבחרת, ונעלם לבד אחרי שהם עוברים.</p>' +
+        '<div class="ed-ovr-list"></div>' +
+        '<button type="button" class="ed-btn ed-btn-secondary" data-act="add-ovr">＋ הוסף שינוי זמני</button>' +
+        '<div class="ed-ovr-form" hidden>' +
+          '<div class="ed-field"><span class="ed-label">מתאריך</span><input class="ed-input" type="date" name="ofrom" min="' + today + '"></div>' +
+          '<div class="ed-field"><span class="ed-label">עד תאריך <small>(לא חובה, ריק = יום אחד)</small></span><input class="ed-input" type="date" name="oto" min="' + today + '"></div>' +
+          '<div class="ed-field"><span class="ed-label">מה קורה בימים האלה?</span>' +
+            '<div class="ed-chips">' +
+              '<button type="button" class="ed-chip is-on" data-mode="closed">סגור</button>' +
+              '<button type="button" class="ed-chip" data-mode="hours">שעות אחרות</button>' +
+            '</div>' +
+            '<div class="ed-ovr-times" dir="ltr" hidden>' +
+              '<input class="ed-input" type="time" name="oopen" value="12:00" aria-label="פתיחה">' +
+              '<span aria-hidden="true">–</span>' +
+              '<input class="ed-input" type="time" name="oclose" value="16:00" aria-label="סגירה">' +
+            '</div>' +
+          '</div>' +
+          '<label class="ed-field"><span class="ed-label">הערה ללקוחות <small>(לא חובה)</small></span>' +
+            '<input class="ed-input" name="onote" maxlength="60" placeholder="למשל: ערב חג"></label>' +
+          '<p class="ed-error ed-ovr-error" role="alert" hidden></p>' +
+          '<div class="ed-actions">' +
+            '<button type="button" class="ed-btn ed-btn-secondary" data-act="ovr-ok">הוסף לרשימה</button>' +
+            '<button type="button" class="ed-btn ed-btn-ghost" data-act="ovr-cancel">ביטול</button>' +
+          '</div>' +
+        '</div>' +
+        '<p class="ed-error ed-main-error" role="alert" hidden></p>' +
+        '<div class="ed-actions ed-actions-end">' +
+          '<button type="submit" class="ed-btn ed-btn-primary">💾 שמור</button>' +
+          '<button type="button" class="ed-btn ed-btn-ghost" data-act="cancel">ביטול</button>' +
+        '</div>' +
+        '<p class="ed-text ed-text-small">שינויים (גם שינוי זמני שהוספת) נשמרים רק אחרי לחיצה על "שמור".</p>' +
+      '</form>', 'ed-modal-form');
+
+    var el = m.el, form = $(el, 'form');
+    var mainErr = $(el, '.ed-main-error'), ovrErr = $(el, '.ed-ovr-error');
+    var ovrForm = $(el, '.ed-ovr-form'), ovrList = $(el, '.ed-ovr-list');
+
+    function refreshRow(row) {
+      var on = $(row, '[data-on]').checked;
+      row.classList.toggle('is-off', !on);
+    }
+    Array.prototype.forEach.call(el.querySelectorAll('.ed-hours-row'), refreshRow);
+    el.addEventListener('change', function (e) {
+      var row = e.target.closest ? e.target.closest('.ed-hours-row') : null;
+      if (row) refreshRow(row);
+      mainErr.hidden = true;
+    });
+    el.addEventListener('input', function () { mainErr.hidden = true; });
+
+    function whenText(o) {
+      return o.from === o.to ? H.DAY_NAMES[H.dowOf(o.from)] + ' ' + H.dm(o.from) : H.dm(o.from) + ' עד ' + H.dm(o.to);
+    }
+    function renderOvr() {
+      if (!overrides.length) { ovrList.innerHTML = '<p class="ed-ovr-empty">אין שינויים זמניים.</p>'; return; }
+      ovrList.innerHTML = overrides.map(function (o, i) {
+        return '<div class="ed-ovr-item"><div class="ed-ovr-main"><b>' + esc(whenText(o)) + '</b>' +
+          '<span>' + (o.closed ? 'סגור' : esc(o.open + '–' + o.close)) + (o.note ? ' · ' + esc(o.note) : '') + '</span></div>' +
+          '<button type="button" class="ed-link" data-del-ovr="' + i + '">מחק</button></div>';
+      }).join('');
+    }
+    renderOvr();
+
+    function setMode(mode) {
+      addMode = mode;
+      Array.prototype.forEach.call(el.querySelectorAll('[data-mode]'), function (b) { b.classList.toggle('is-on', b.dataset.mode === mode); });
+      $(el, '.ed-ovr-times').hidden = mode !== 'hours';
+    }
+    function ovrFail(msg) { ovrErr.textContent = msg; ovrErr.hidden = false; }
+
+    el.addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('button') : null;
+      if (!t) return;
+      if (t.dataset.mode) { setMode(t.dataset.mode); return; }
+      if (t.hasAttribute('data-del-ovr')) {
+        overrides.splice(Number(t.getAttribute('data-del-ovr')), 1);
+        renderOvr();
+        return;
+      }
+      var act = t.dataset.act;
+      if (act === 'cancel') m.close();
+      else if (act === 'add-ovr') {
+        ovrErr.hidden = true;
+        ovrForm.hidden = false;
+        t.hidden = true;
+        form.elements.ofrom.focus();
+      } else if (act === 'ovr-cancel') {
+        ovrForm.hidden = true;
+        $(el, '[data-act=add-ovr]').hidden = false;
+      } else if (act === 'ovr-ok') {
+        ovrErr.hidden = true;
+        var from = form.elements.ofrom.value, to = form.elements.oto.value || from;
+        if (!from) return ovrFail('בחר תאריך התחלה');
+        if (from < today) return ovrFail('התאריך שבחרת כבר עבר');
+        if (to < from) return ovrFail('תאריך הסיום חייב להיות אחרי תאריך ההתחלה');
+        var item = { from: from, to: to, closed: addMode === 'closed', note: form.elements.onote.value.trim() };
+        if (!item.closed) {
+          var r = H.parseRange([form.elements.oopen.value, form.elements.oclose.value]);
+          if (!r) return ovrFail('בדוק את השעות: הסגירה חייבת להיות אחרי הפתיחה');
+          item.open = r.open; item.close = r.close;
+        }
+        overrides.push(item);
+        overrides = H.normOverrides(overrides).sort(function (a, b) { return a.from < b.from ? -1 : a.from > b.from ? 1 : 0; });
+        renderOvr();
+        form.elements.ofrom.value = ''; form.elements.oto.value = ''; form.elements.onote.value = '';
+        setMode('closed');
+        ovrForm.hidden = true;
+        $(el, '[data-act=add-ovr]').hidden = false;
+      }
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      mainErr.hidden = true;
+      var out = [];
+      var rowsEl = el.querySelectorAll('.ed-hours-row');
+      for (var i = 0; i < rowsEl.length; i++) {
+        var row = rowsEl[i], d = Number(row.dataset.d);
+        if (!$(row, '[data-on]').checked) { out[d] = null; continue; }
+        var r = H.parseRange([$(row, '[data-open]').value, $(row, '[data-close]').value]);
+        if (!r) {
+          mainErr.textContent = 'בדוק את השעות ביום ' + H.DAY_NAMES[d] + ': הסגירה חייבת להיות אחרי הפתיחה (או כבה את היום)';
+          mainErr.hidden = false;
+          return;
+        }
+        out[d] = r;
+      }
+      var btn = $(el, '.ed-btn-primary');
+      btn.disabled = true; btn.textContent = 'שומר…';
+      Store.saveHours({ hours: H.serializeHours(out), hours_overrides: H.serializeOverrides(overrides) }).then(function (saved) {
+        S.settings = saved;
+        try { doc.dispatchEvent(new CustomEvent('kababia:settings', { detail: saved })); } catch (er) {}
+        m.close();
+        toast('שעות הפתיחה נשמרו ✓');
+      }, function (er) { btn.disabled = false; btn.textContent = '💾 שמור'; fail(er, 'לשמור'); });
+    });
+  }
+
+  /* ======================================================================
      סלטים ורטבים
      ====================================================================== */
   function openFillingsForm() {
@@ -939,6 +1107,7 @@
     b.innerHTML =
       '<button type="button" class="ed-bar-btn ed-bar-main" data-bar="add"><span>➕</span> הוסף מנה</button>' +
       '<button type="button" class="ed-bar-btn" data-bar="popup"><span>📢</span> הודעה קופצת</button>' +
+      '<button type="button" class="ed-bar-btn" data-bar="hours"><span>🕐</span> שעות פתיחה</button>' +
       '<button type="button" class="ed-bar-btn ed-bar-exit" data-bar="exit"><span>🚪</span> יציאה</button>';
     doc.body.appendChild(b);
     chrome.ribbon = r; chrome.bar = b;
@@ -983,6 +1152,7 @@
         else openDishForm(null, { cat: defaultCat() });
       }
       else if (act === 'popup') openPopupForm();
+      else if (act === 'hours') openHoursForm();
       else if (act === 'exit') {
         Store.logout();
         if (CFG.gateAll) { global.location.reload(); return; }   // אתר פרטי: חוזרים למסך השחור

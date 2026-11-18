@@ -242,88 +242,9 @@
 
 <script src="data.js"></script>
 <script src="menu.js"></script>
+<script src="hours.js"></script>
 
-<script>
-(function () {
-  var SCHEDULE = {
-    0: [720, 1320],
-    1: [720, 1320],
-    2: [720, 1320],
-    3: [720, 1320],
-    4: [720, 1320],
-    5: null,
-    6: null
-  };
-  var DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-  var DAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 
-  var badge = document.getElementById('open-badge');
-  if (!badge) return;
-  var labelEl = badge.querySelector('.open-label');
-  var detailEl = badge.querySelector('.open-detail');
-
-  function israelNow() {
-    var parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Jerusalem',
-      hour12: false,
-      weekday: 'short',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).formatToParts(new Date());
-    var get = function (type) {
-      var p = parts.find(function (x) { return x.type === type; });
-      return p ? p.value : null;
-    };
-    var hour = parseInt(get('hour'), 10);
-    return {
-      day: DAY_INDEX[get('weekday')],
-      minutes: (hour === 24 ? 0 : hour) * 60 + parseInt(get('minute'), 10)
-    };
-  }
-
-  function pad(mins) {
-    var h = Math.floor(mins / 60), m = mins % 60;
-    return h + ':' + (m < 10 ? '0' + m : m);
-  }
-
-  function nextOpening(day, minutes) {
-    for (var i = 0; i < 8; i++) {
-      var d = (day + i) % 7;
-      var hours = SCHEDULE[d];
-      if (!hours) continue;
-      if (i === 0 && minutes >= hours[0]) continue;
-      return { day: d, at: hours[0], today: i === 0 };
-    }
-    return null;
-  }
-
-  function render() {
-    var now = israelNow();
-    if (now.day === undefined || isNaN(now.minutes)) return;
-
-    var today = SCHEDULE[now.day];
-    var isOpen = today && now.minutes >= today[0] && now.minutes < today[1];
-
-    if (isOpen) {
-      badge.classList.add('is-open');
-      labelEl.textContent = 'פתוח עכשיו';
-      detailEl.textContent = '· עד ' + pad(today[1]);
-    } else {
-      badge.classList.remove('is-open');
-      var next = nextOpening(now.day, now.minutes);
-      labelEl.textContent = 'סגור';
-      detailEl.textContent = next
-        ? (next.today ? '· נפתח ב-' + pad(next.at)
-                      : '· נפתח ב' + DAY_NAMES[next.day] + ' ' + pad(next.at))
-        : '';
-    }
-    badge.hidden = false;
-  }
-
-  render();
-  setInterval(render, 60000);
-})();
-</script>
 
 </body>
 </html>

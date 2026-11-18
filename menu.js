@@ -347,6 +347,10 @@
   /* ---------- טעינת הנתונים ---------- */
   function signature(d) { return JSON.stringify([d.dishes, d.settings, d.reviews]); }
 
+  function notifySettings() {
+    try { doc.dispatchEvent(new CustomEvent('kababia:settings', { detail: state.settings })); } catch (e) {}
+  }
+
   function applyData(d) {
     state.reviews = d.reviews || [];
     if (!d.dishes.length) {
@@ -354,6 +358,7 @@
       state.empty = true;
       state.dishes = [];
       state.settings = d.settings;
+      notifySettings();
       if (state.edit) render(); else if (state.reviews.length) renderReviews();
       return;
     }
@@ -361,6 +366,7 @@
     var sig = signature(d);
     state.dishes = d.dishes;
     state.settings = d.settings;
+    notifySettings();
     if (sig !== lastSignature || !rendered) {
       lastSignature = sig;
       render();
