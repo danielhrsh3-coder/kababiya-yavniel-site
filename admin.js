@@ -745,6 +745,9 @@
           '<div class="ed-date-quick ed-source-quick">' +
             ['גוגל', 'אינסטגרם', 'פייסבוק', 'וואטסאפ'].map(function (n) { return '<button type="button" class="ed-chip" data-source="' + n + '">' + n + '</button>'; }).join('') +
           '</div></div>' +
+        '<label class="ed-field"><span class="ed-label">קישור לביקורת בגוגל מפות <small>(לא חובה)</small></span>' +
+          '<input class="ed-input" name="url" type="url" inputmode="url" dir="ltr" maxlength="500" autocomplete="off" placeholder="https://maps.app.goo.gl/...">' +
+          '<small class="ed-hint">איך מקבלים? בגוגל מפות, ליד הביקורת לוחצים על שלוש הנקודות ← "שתף ביקורת" ← "העתק קישור", ומדביקים כאן. הלקוחות יראו כפתור שמוביל לביקורת המקורית.</small></label>' +
         '<label class="ed-switch"><input type="checkbox" name="on"><span class="ed-switch-ui"></span><span>להציג באתר</span></label>' +
         '<p class="ed-error" role="alert" hidden></p>' +
         '<div class="ed-actions">' +
@@ -762,6 +765,7 @@
     form.elements.text.value = base.text;
     form.elements.author.value = base.author;
     form.elements.source.value = base.source;
+    form.elements.url.value = base.url || '';
     form.elements.on.checked = base.visible !== false;
 
     function refreshStars() {
@@ -795,8 +799,15 @@
         form.elements.text.focus();
         return;
       }
+      var url = form.elements.url.value.trim();
+      if (url && !/^https?:\/\//i.test(url)) {
+        err.textContent = 'הקישור צריך להתחיל ב-https://'; err.hidden = false;
+        form.elements.url.focus();
+        return;
+      }
       var sorts = S.reviews.map(function (x) { return x.sort || 0; });
       var out = clone(base);
+      out.url = url;
       out.text = text;
       out.author = form.elements.author.value.trim();
       out.source = form.elements.source.value.trim();

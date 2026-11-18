@@ -961,3 +961,11 @@ body.popup-open { overflow: hidden; }
 @media (max-width: 480px) {
   .menu-group-specials { padding: 14px 12px 16px; }
 }
+
+.review-link {
+  display: block;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--gold-light);
+  text-decoration: underline;
+}

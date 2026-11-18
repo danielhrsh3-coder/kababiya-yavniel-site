@@ -36,6 +36,7 @@ create table if not exists public.reviews (
   text       text not null,
   stars      smallint not null default 5 check (stars between 1 and 5),
   source     text not null default '',
+  url        text not null default '',
   sort       integer not null default 0,
   visible    boolean not null default true,
   created_at timestamptz not null default now()
@@ -44,6 +45,7 @@ create table if not exists public.reviews (
 -- אם כבר הרצת גרסה קודמת של הקובץ, השורות האלה מוסיפות את מה שחסר
 alter table public.dishes        add column if not exists special_until date;
 alter table public.site_settings add column if not exists popup_image text not null default '';
+alter table public.reviews       add column if not exists url text not null default '';
 
 -- 3. הרשאות: כולם קוראים, רק בעל העסק (משתמש מחובר) כותב ------------------
 alter table public.dishes        enable row level security;

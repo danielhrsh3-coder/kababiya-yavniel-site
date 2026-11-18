@@ -266,3 +266,5 @@ body.ed-on .site-popup { z-index: 1100; }
 
 /* ---------- תמונה בהודעה הקופצת ---------- */
 .ed-photo-rect { width: 150px; height: 110px; border-radius: 12px; }
+
+.ed-hint { display: block; margin-top: 8px; font-size: 14px; line-height: 1.5; color: #a79f93; font-weight: 400; }

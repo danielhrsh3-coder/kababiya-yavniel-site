@@ -244,6 +244,7 @@
       '<div class="review-stars" role="img" aria-label="' + r.stars + ' כוכבים מתוך 5">' + starsText(r.stars) + '</div>' +
       '<p class="review-text">' + esc(r.text) + '</p>' +
       (who ? '<span class="review-author">' + who + '</span>' : '') +
+      (/^https?:\/\//i.test(r.url || '') ? '<a class="review-link" href="' + esc(r.url) + '" target="_blank" rel="noopener noreferrer">לצפייה בביקורת המקורית ←</a>' : '') +
       (off ? '<span class="dish-tag is-off">מוסתרת</span>' : '') +
       (ed ? pencil('data-edit-review="' + esc(r.id) + '"', 'עריכת חוות דעת' + (r.author ? ' של ' + r.author : '')) : '') +
     '</div>';

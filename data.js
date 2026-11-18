@@ -104,6 +104,7 @@
       text: r.text || '',
       stars: stars >= 1 && stars <= 5 ? Math.round(stars) : 5,
       source: r.source || '',
+      url: r.url || '',
       sort: typeof r.sort === 'number' ? r.sort : (i + 1) * 10,
       visible: r.visible !== false
     };
@@ -139,7 +140,7 @@
     return o;
   }
 
-  var REVIEW_FIELDS = ['author', 'text', 'stars', 'source', 'sort', 'visible'];
+  var REVIEW_FIELDS = ['author', 'text', 'stars', 'source', 'url', 'sort', 'visible'];
   function reviewBody(r) {
     var o = {};
     REVIEW_FIELDS.forEach(function (k) { o[k] = r[k]; });
