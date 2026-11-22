@@ -1022,3 +1022,47 @@ body.popup-open { overflow: hidden; }
 .hours-notes-title { margin: 0 0 4px; font-weight: 700; color: var(--gold-light); }
 .hours-notes ul { margin: 0; padding: 0; list-style: none; }
 .hours-notes li { padding: 3px 0; color: #ddd; }
+
+/* ---------- תיבת דירוג פרטית על האתר (feedback.js) ---------- */
+.fb-box { max-width: 420px; margin: 0 auto 22px; }
+.fb-open {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 8px 20px; border-radius: 999px; cursor: pointer;
+  border: 2px solid rgba(252, 211, 77, .55); background: transparent;
+  color: var(--gold-light); font: 700 15px 'Heebo', sans-serif;
+}
+.fb-open:hover, .fb-open:focus-visible { border-color: var(--gold-light); background: rgba(0, 0, 0, .25); }
+.fb-form {
+  position: relative; margin-top: 14px; padding: 18px 16px; text-align: right;
+  background: rgba(0, 0, 0, .35); border: 1px solid rgba(252, 211, 77, .3); border-radius: 14px;
+}
+.fb-form[hidden] { display: none; }
+.fb-q { margin: 0 0 10px; color: #fff; font-weight: 700; font-size: 17px; }
+.fb-q small { display: block; font-weight: 400; font-size: 13px; color: rgba(255, 255, 255, .7); }
+.fb-stars { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; direction: ltr; }
+.fb-star {
+  width: 48px; height: 48px; border-radius: 12px; cursor: pointer; font-size: 28px; line-height: 1;
+  border: 2px solid rgba(255, 255, 255, .25); background: rgba(0, 0, 0, .3); color: rgba(255, 255, 255, .4);
+}
+.fb-star.is-on { color: var(--gold); border-color: var(--gold); background: rgba(245, 158, 11, .15); }
+.fb-label { display: block; margin-bottom: 6px; color: var(--cream); font-size: 15px; }
+.fb-label small { color: rgba(255, 255, 255, .6); }
+.fb-text {
+  width: 100%; resize: vertical; min-height: 84px; padding: 10px 12px; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, .25); background: #fff; color: #1a1a1a;
+  font: 400 16px 'Heebo', sans-serif; line-height: 1.5;
+}
+.fb-text:focus { outline: 3px solid var(--gold); outline-offset: 1px; }
+.fb-count { margin: 2px 0 8px; font-size: 12px; color: rgba(255, 255, 255, .55); direction: ltr; text-align: left; }
+.fb-hp { position: absolute; top: 0; right: 0; width: 1px; height: 1px; margin: 0; padding: 0; border: 0; opacity: 0; overflow: hidden; clip-path: inset(50%); pointer-events: none; }
+.fb-note { margin: 0 0 10px; font-size: 13px; color: rgba(255, 255, 255, .7); }
+.fb-msg { min-height: 20px; margin: 0 0 8px; font-size: 14.5px; }
+.fb-msg.is-error { color: #ffc2b8; }
+.fb-send {
+  width: 100%; min-height: 48px; border-radius: 12px; border: 0; cursor: pointer;
+  background: var(--gold); color: #2b1a00; font: 800 17px 'Heebo', sans-serif;
+}
+.fb-send:disabled { opacity: .6; cursor: default; }
+.fb-thanks { margin: 6px 0; text-align: center; color: #fff; font-weight: 700; font-size: 17px; }
+/* בעל העסק במצב עריכה לא צריך את התיבה הציבורית */
+body.ed-on .fb-box { display: none; }

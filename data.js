@@ -351,6 +351,18 @@
     return rest('DELETE', '/rest/v1/reviews?id=eq.' + encodeURIComponent(id), undefined, { Prefer: 'return=minimal' });
   }
 
+  /* משוב פרטי על האתר: הציבור רק שולח (feedback.js), רק הבעלים קורא כאן */
+  function liveLoadFeedback() {
+    return rest('GET', '/rest/v1/site_feedback?select=id,stars,comment,seen,created_at&order=created_at.desc&limit=200')
+      .then(function (rows) { return Array.isArray(rows) ? rows : []; });
+  }
+  function liveMarkFeedbackSeen() {
+    return rest('PATCH', '/rest/v1/site_feedback?seen=eq.false', { seen: true }, { Prefer: 'return=minimal' });
+  }
+  function liveDeleteFeedback(id) {
+    return rest('DELETE', '/rest/v1/site_feedback?id=eq.' + encodeURIComponent(id), undefined, { Prefer: 'return=minimal' });
+  }
+
   function liveSaveSettings(s) {
     var body = {
       id: 1,
@@ -549,6 +561,9 @@
     deleteDish: function (id) { return LIVE ? liveDeleteDish(id) : demoDeleteDish(id); },
     saveReview: function (r) { return LIVE ? liveSaveReview(r) : demoSaveReview(r); },
     deleteReview: function (id) { return LIVE ? liveDeleteReview(id) : demoDeleteReview(id); },
+    loadFeedback: function () { return LIVE ? liveLoadFeedback() : Promise.resolve([]); },
+    markFeedbackSeen: function () { return LIVE ? liveMarkFeedbackSeen() : Promise.resolve(null); },
+    deleteFeedback: function (id) { return LIVE ? liveDeleteFeedback(id) : Promise.resolve(null); },
     saveSettings: function (s) { return LIVE ? liveSaveSettings(s) : demoSaveSettings(s); },
     saveHours: function (h) { return LIVE ? liveSaveHours(h) : demoSaveHours(h); },
     uploadImage: function (blob) { return LIVE ? liveUpload(blob) : blobToDataURL(blob); },

@@ -449,6 +449,26 @@
         אינסטגרם
       </a>
     </div>
+    <div class="fb-box" id="site-feedback">
+      <button type="button" class="fb-open" aria-expanded="false" aria-controls="site-feedback-form">⭐ דרגו את האתר שלנו</button>
+      <form class="fb-form" id="site-feedback-form" hidden novalidate>
+        <p class="fb-q">איך האתר? <small>(הדירוג על האתר עצמו, לא על האוכל)</small></p>
+        <div class="fb-stars" role="radiogroup" aria-label="דירוג האתר">
+          <button type="button" class="fb-star" data-n="1" role="radio" aria-checked="false" aria-label="כוכב אחד">★</button>
+          <button type="button" class="fb-star" data-n="2" role="radio" aria-checked="false" aria-label="2 כוכבים">★</button>
+          <button type="button" class="fb-star" data-n="3" role="radio" aria-checked="false" aria-label="3 כוכבים">★</button>
+          <button type="button" class="fb-star" data-n="4" role="radio" aria-checked="false" aria-label="4 כוכבים">★</button>
+          <button type="button" class="fb-star" data-n="5" role="radio" aria-checked="false" aria-label="5 כוכבים">★</button>
+        </div>
+        <label class="fb-label" for="site-feedback-text">מה אהבתם, או מה אפשר לשפר? <small>(לא חובה)</small></label>
+        <textarea class="fb-text" id="site-feedback-text" rows="3" maxlength="600"></textarea>
+        <div class="fb-count" aria-hidden="true">0/600</div>
+        <input class="fb-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <p class="fb-note">ההערה מגיעה לבעל העסק בלבד, בלי שם ובלי פרטי קשר.</p>
+        <p class="fb-msg" role="status" aria-live="polite"></p>
+        <button type="submit" class="fb-send">שליחה</button>
+      </form>
+    </div>
     <p class="footer-copy">כשר למהדרין · הקבביה ביבניאל · בטעם של עוד...</p>
     <p class="footer-legal"><a href="accessibility.html#accessibility">הצהרת נגישות</a><span aria-hidden="true"> · </span><a href="accessibility.html#terms">תקנון ופרטיות</a></p>
   </div>
@@ -472,6 +492,7 @@
 <script src="data.js"></script>
 <script src="menu.js"></script>
 <script src="hours.js"></script>
+<script src="feedback.js"></script>
 
 <script>
 /* סרטונים: לופ מושתק תמיד; שמע מופעל רק בלחיצה על הכפתור,

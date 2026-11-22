@@ -1084,6 +1084,95 @@
   /* ======================================================================
      מסגרת העריכה: פס עליון + כפתורים בתחתית
      ====================================================================== */
+  /* ======================================================================
+     משוב פרטי על האתר: נשלח מתיבת הדירוג בתחתית האתר, גלוי רק לבעלים
+     ====================================================================== */
+  function setFeedbackBadge(n) {
+    var b = chrome.bar && chrome.bar.querySelector('.ed-badge');
+    if (!b) return;
+    b.textContent = n > 9 ? '9+' : String(n);
+    b.hidden = !(n > 0);
+  }
+
+  function refreshFeedbackBadge() {
+    Store.loadFeedback().then(function (rows) {
+      setFeedbackBadge(rows.filter(function (r) { return !r.seen; }).length);
+    }, function () { /* התג הוא רק נוחות; שגיאה לא מפריעה */ });
+  }
+
+  function feedbackWhen(iso) {
+    try {
+      var d = new Date(iso), tz = 'Asia/Jerusalem';
+      return d.toLocaleDateString('he-IL', { timeZone: tz, day: 'numeric', month: 'numeric' }) + ' · ' +
+             d.toLocaleTimeString('he-IL', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return ''; }
+  }
+
+  function openFeedbackList() {
+    var m = openModal(
+      '<div class="ed-form">' +
+        '<h2 class="ed-title">💬 משוב על האתר</h2>' +
+        '<p class="ed-text">מה גולשים כתבו על האתר עצמו (לא על האוכל). רק אתם רואים את זה.</p>' +
+        '<div class="ed-fb-sum" hidden></div>' +
+        '<div class="ed-fb-list"><p class="ed-ovr-empty">טוען…</p></div>' +
+        '<div class="ed-actions"><button type="button" class="ed-btn ed-btn-primary" data-act="cancel">סגור</button></div>' +
+      '</div>', 'ed-modal-form');
+    var el = m.el, list = $(el, '.ed-fb-list'), sum = $(el, '.ed-fb-sum');
+    var rows = [];
+
+    function render() {
+      if (!rows.length) {
+        sum.hidden = true;
+        list.innerHTML = '<p class="ed-ovr-empty">עדיין אין משוב. כשגולש ידרג את האתר, זה יופיע כאן.</p>';
+        return;
+      }
+      var total = rows.reduce(function (a, r) { return a + r.stars; }, 0);
+      sum.textContent = 'ממוצע ' + (total / rows.length).toFixed(1).replace(/\.0$/, '') + ' ★ · ' + rows.length + ' דירוגים';
+      sum.hidden = false;
+      list.innerHTML = rows.map(function (r) {
+        return '<div class="ed-fb-item' + (r.isNew ? ' is-new' : '') + '">' +
+          '<div class="ed-fb-head">' +
+            '<span class="ed-fb-stars" aria-label="' + r.stars + ' כוכבים מתוך 5">' + '★★★★★☆☆☆☆☆'.slice(5 - r.stars, 10 - r.stars) + '</span>' +
+            (r.isNew ? '<span class="ed-fb-new">חדש</span>' : '') +
+            '<span class="ed-fb-when">' + esc(feedbackWhen(r.created_at)) + '</span>' +
+            '<button type="button" class="ed-fb-del" data-del="' + esc(r.id) + '" aria-label="מחק הערה" title="מחק">🗑</button>' +
+          '</div>' +
+          (r.comment ? '<div class="ed-fb-text">' + esc(r.comment) + '</div>'
+                     : '<div class="ed-fb-text is-empty">דירוג בלי הערה</div>') +
+        '</div>';
+      }).join('');
+    }
+
+    Store.loadFeedback().then(function (r) {
+      rows = r.map(function (x) { return Object.assign({}, x, { isNew: !x.seen }); });
+      render();
+      if (rows.some(function (x) { return x.isNew; })) {
+        Store.markFeedbackSeen().then(function () { setFeedbackBadge(0); }, function () {});
+      }
+    }, function (er) { m.close(); fail(er, 'לטעון את המשוב'); });
+
+    el.addEventListener('click', function (e) {
+      var t = e.target.closest('button');
+      if (!t) return;
+      if (t.dataset.act === 'cancel') { m.close(); return; }
+      if (t.dataset.del) {
+        var id = t.dataset.del;
+        confirmDialog({
+          title: 'למחוק את ההערה?',
+          text: 'אי אפשר לשחזר אחרי המחיקה.',
+          ok: 'כן, מחק', danger: true
+        }).then(function (yes) {
+          if (!yes) return;
+          Store.deleteFeedback(id).then(function () {
+            rows = rows.filter(function (x) { return x.id !== id; });
+            render();
+            toast('ההערה נמחקה');
+          }, function (er) { fail(er, 'למחוק'); });
+        });
+      }
+    });
+  }
+
   function buildChrome() {
     removeChrome();
     var r = doc.createElement('div');
@@ -1108,9 +1197,11 @@
       '<button type="button" class="ed-bar-btn ed-bar-main" data-bar="add"><span>➕</span> הוסף מנה</button>' +
       '<button type="button" class="ed-bar-btn" data-bar="popup"><span>📢</span> הודעה קופצת</button>' +
       '<button type="button" class="ed-bar-btn" data-bar="hours"><span>🕐</span> שעות פתיחה</button>' +
+      '<button type="button" class="ed-bar-btn" data-bar="feedback"><span>💬</span> משוב<i class="ed-badge" hidden></i></button>' +
       '<button type="button" class="ed-bar-btn ed-bar-exit" data-bar="exit"><span>🚪</span> יציאה</button>';
     doc.body.appendChild(b);
     chrome.ribbon = r; chrome.bar = b;
+    refreshFeedbackBadge();
   }
 
   function removeChrome() {
@@ -1153,6 +1244,7 @@
       }
       else if (act === 'popup') openPopupForm();
       else if (act === 'hours') openHoursForm();
+      else if (act === 'feedback') openFeedbackList();
       else if (act === 'exit') {
         Store.logout();
         if (CFG.gateAll) { global.location.reload(); return; }   // אתר פרטי: חוזרים למסך השחור

@@ -44,6 +44,13 @@ body.ed-lock { overflow: hidden; }
   cursor: pointer;
 }
 .ed-bar-btn span { font-size: 20px; }
+.ed-bar-btn { position: relative; }
+.ed-badge {
+  position: absolute; top: 4px; inset-inline-start: 6px; min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 10px; background: var(--red); color: #fff; font: 800 12px/20px 'Heebo', sans-serif;
+  font-style: normal; text-align: center;
+}
+.ed-badge[hidden] { display: none; }
 .ed-bar-main { background: var(--gold); border-color: var(--gold); color: #2b1a00; }
 .ed-bar-exit { flex: 0 0 auto; padding: 0 16px; border-color: #5a5045; color: #ddd; }
 
@@ -320,3 +327,17 @@ body.ed-on .site-popup { z-index: 1100; }
   .ed-bar-btn span { font-size: 20px; line-height: 1; }
   .ed-bar-exit { padding: 4px 10px; }
 }
+
+/* ---------- משוב על האתר ---------- */
+.ed-fb-sum { margin: 0 0 12px; color: var(--gold-light); font-weight: 800; font-size: 17px; }
+.ed-fb-sum[hidden] { display: none; }
+.ed-fb-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; max-height: 50vh; overflow: auto; }
+.ed-fb-item { padding: 12px 14px; border: 2px solid #4a4036; border-radius: 12px; background: #0d0b09; }
+.ed-fb-item.is-new { border-color: var(--gold); }
+.ed-fb-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+.ed-fb-stars { color: var(--gold); letter-spacing: 2px; font-size: 17px; }
+.ed-fb-new { padding: 1px 8px; border-radius: 8px; background: var(--gold); color: #2b1a00; font: 800 12px 'Heebo', sans-serif; }
+.ed-fb-when { margin-inline-start: auto; color: #a79f93; font-size: 13.5px; white-space: nowrap; }
+.ed-fb-del { border: 1px solid #7a2a22; border-radius: 8px; background: #2a1210; color: #ffb4a8; cursor: pointer; font-size: 16px; line-height: 1; padding: 6px 9px; white-space: nowrap; }
+.ed-fb-text { margin-top: 8px; white-space: pre-line; line-height: 1.6; font-size: 16px; color: #e6e0d6; overflow-wrap: anywhere; }
+.ed-fb-text.is-empty { color: #a79f93; font-style: italic; }
