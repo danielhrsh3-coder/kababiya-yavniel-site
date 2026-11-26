@@ -1320,20 +1320,20 @@
      ביקורת חדשה מצילום מסך של גוגל (Gemini קורא, הבעלים מאשר)
      ====================================================================== */
   var SHOT_ERRORS = {
-    no_key: 'קריאה אוטומטית עוד לא הופעלה (חסר מפתח Gemini). אפשר למלא את הפרטים ידנית.',
-    bad_key: 'מפתח ה-Gemini לא תקין. אפשר למלא את הפרטים ידנית.',
-    quota: 'Gemini עמוס כרגע (מכסה חינמית). נסו שוב בעוד דקה, או מלאו ידנית.',
-    unreadable: 'לא הצלחנו לקרוא את התמונה. נסו צילום ברור יותר, או מלאו ידנית.',
+    no_key: 'הקריאה האוטומטית עוד לא הופעלה: חסר מפתח Gemini ב-Supabase.',
+    bad_key: 'מפתח ה-Gemini לא תקין. צריך להדביק אותו מחדש ב-Supabase.',
+    quota: 'Gemini עמוס כרגע (מכסה חינמית). נסו שוב בעוד דקה.',
+    unreadable: 'לא הצלחנו לקרוא את הביקורת מהתמונה. נסו צילום ברור יותר.',
     not_owner: 'אין הרשאה. צריך להיכנס שוב.',
-    network: 'לא הצלחנו לקרוא את התמונה. בדקו אינטרנט, או מלאו ידנית.'
+    network: 'לא הצלחנו לקרוא את התמונה. בדקו שיש אינטרנט ונסו שוב.'
   };
 
   function openShotForm() {
-    var stars = 5, busy = false;
+    var got = null, busy = false;
     var m = openModal(
       '<form class="ed-form" novalidate>' +
         '<h2 class="ed-title">📷 ביקורת מצילום מסך</h2>' +
-        '<p class="ed-text">צלמו מסך של ביקורת בגוגל מפות ובחרו אותו כאן. הפרטים יתמלאו לבד. בדקו אותם, ורק אחרי "אישור" הביקורת עולה לאתר.</p>' +
+        '<p class="ed-text">צלמו מסך של ביקורת בגוגל מפות ובחרו אותו כאן. השם, הכוכבים והטקסט נקראים לבד מהתמונה. רק אחרי "אישור" הביקורת עולה לאתר.</p>' +
         '<div class="ed-field"><div class="ed-photo ed-photo-wide">' +
           '<div class="ed-photo-preview ed-photo-rect ed-shot-preview" data-preview><span>אין תמונה</span></div>' +
           '<div class="ed-photo-btns"><button type="button" class="ed-btn ed-btn-secondary" data-act="pick">📷 בחר צילום מסך</button></div>' +
@@ -1341,16 +1341,11 @@
         '</div></div>' +
         '<p class="ed-shot-status" role="status" aria-live="polite" hidden></p>' +
         '<div class="ed-shot-fields" hidden>' +
-          '<label class="ed-field"><span class="ed-label">שם הכותב</span>' +
-            '<input class="ed-input" name="author" type="text" maxlength="60" autocomplete="off"></label>' +
-          '<div class="ed-field"><span class="ed-label">כוכבים</span>' +
-            '<div class="ed-stars" role="radiogroup" aria-label="כוכבים">' +
-              [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="ed-star" data-n="' + n + '" role="radio" aria-label="' + n + ' כוכבים">★</button>'; }).join('') +
-            '</div></div>' +
-          '<label class="ed-field"><span class="ed-label">מה נכתב בביקורת</span>' +
-            '<textarea class="ed-input ed-textarea" name="text" rows="6" maxlength="2000"></textarea></label>' +
-          '<label class="ed-field"><span class="ed-label">קישור לביקורת בגוגל מפות <small>(לא חובה)</small></span>' +
-            '<input class="ed-input" name="url" type="url" inputmode="url" dir="ltr" maxlength="500" autocomplete="off" placeholder="https://maps.app.goo.gl/..."></label>' +
+          '<span class="ed-label">כך זה ייראה באתר:</span>' +
+          '<div class="ed-quote ed-shot-result"></div>' +
+          '<label class="ed-field"><span class="ed-label">קישור לביקורת המקורית בגוגל <small>(לא חובה)</small></span>' +
+            '<input class="ed-input" name="url" type="url" inputmode="url" dir="ltr" maxlength="500" autocomplete="off" placeholder="https://maps.app.goo.gl/...">' +
+            '<small class="ed-hint">בגוגל מפות, ליד הביקורת: שלוש הנקודות ← "שתף ביקורת" ← "העתק קישור", ומדביקים כאן.</small></label>' +
         '</div>' +
         '<p class="ed-error" role="alert" hidden></p>' +
         '<div class="ed-actions">' +
@@ -1364,17 +1359,19 @@
     var previewURL = null;
     m.onClose = function () { if (previewURL) { try { URL.revokeObjectURL(previewURL); } catch (e) {} } };
 
-    function refreshStars() {
-      Array.prototype.forEach.call(el.querySelectorAll('.ed-star'), function (b) {
-        b.classList.toggle('is-on', Number(b.dataset.n) <= stars);
-        b.setAttribute('aria-checked', Number(b.dataset.n) === stars ? 'true' : 'false');
-      });
-    }
     function say(t, kind) {
       status.textContent = t; status.hidden = !t;
       status.className = 'ed-shot-status' + (kind ? ' is-' + kind : '');
     }
-    function showFields() { fields.hidden = false; ok.hidden = false; refreshStars(); }
+    function showResult(r) {
+      got = r;
+      $(el, '.ed-shot-result').innerHTML =
+        '<div class="ed-quote-stars" aria-label="' + r.stars + ' כוכבים מתוך 5">' + '★★★★★☆☆☆☆☆'.slice(5 - r.stars, 10 - r.stars) + '</div>' +
+        '<div class="ed-quote-text">' + esc(r.text) + '</div>' +
+        (r.author ? '<div class="ed-quote-who">— ' + esc(r.author) + ' · גוגל</div>' : '');
+      fields.hidden = false; ok.hidden = false;
+    }
+    function hideResult() { got = null; fields.hidden = true; ok.hidden = true; }
 
     fileIn.addEventListener('change', function () {
       var file = fileIn.files && fileIn.files[0];
@@ -1382,6 +1379,7 @@
       if (!file || busy) return;
       err.hidden = true;
       busy = true;
+      hideResult();
       say('⏳ קורא את הביקורת…', 'busy');
       resizeImage(file, 1600, 0.9).then(function (blob) {
         if (previewURL) { try { URL.revokeObjectURL(previewURL); } catch (e) {} }
@@ -1390,22 +1388,18 @@
         $(el, '[data-act=pick]').textContent = '📷 צילום אחר';
         return Store.readReview(blob);
       }).then(function (r) {
-        form.elements.author.value = r.author || '';
-        form.elements.text.value = r.text || '';
-        stars = r.stars || 5;
-        say('✓ נקרא. בדקו שהכול נכון ואשרו.', 'ok');
-        showFields();
+        if (!r || !String(r.text || '').trim()) { say(SHOT_ERRORS.unreadable, 'warn'); return; }
+        say('✓ נקרא. בדקו שזה נכון ואשרו. אם משהו לא נקרא טוב, בחרו צילום ברור יותר.', 'ok');
+        showResult({ author: r.author || '', stars: r.stars || 5, text: String(r.text).trim() });
       }, function (er) {
         if (er && er.auth) { fail(er); return; }
-        say(SHOT_ERRORS[er && er.code] || (er && er.message) || SHOT_ERRORS.network, 'warn');
-        showFields();
+        say(SHOT_ERRORS[er && er.code] || SHOT_ERRORS.network, 'warn');
       }).then(function () { busy = false; });
     });
 
     el.addEventListener('click', function (e) {
       var t = e.target.closest('button');
       if (!t) return;
-      if (t.dataset.n) { stars = Number(t.dataset.n); refreshStars(); return; }
       if (t.dataset.act === 'pick') fileIn.click();
       else if (t.dataset.act === 'cancel') m.close();
     });
@@ -1413,13 +1407,12 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       err.hidden = true;
-      var text = form.elements.text.value.trim();
-      if (!text) { err.textContent = 'חסר הטקסט של הביקורת'; err.hidden = false; form.elements.text.focus(); return; }
+      if (!got) { err.textContent = 'בחרו קודם צילום מסך של ביקורת'; err.hidden = false; return; }
       var url = form.elements.url.value.trim();
       if (url && !/^https?:\/\//i.test(url)) { err.textContent = 'הקישור צריך להתחיל ב-https://'; err.hidden = false; return; }
       var sorts = S.reviews.map(function (x) { return x.sort || 0; });
       var out = {
-        id: null, author: form.elements.author.value.trim(), text: text, stars: stars, source: 'גוגל', url: url,
+        id: null, author: got.author, text: got.text, stars: got.stars, source: 'גוגל', url: url,
         sort: Math.max.apply(null, sorts.concat([0])) + 1, visible: true, from_screenshot: true
       };
       ok.disabled = true; ok.textContent = 'מפרסם…';
