@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
   const env = Deno.env.toObject();
   const SYSTEM = /^(SUPABASE_|SB_|DENO_|PATH$|HOME$|HOSTNAME$|PWD$|LANG$)/;
   const custom = Object.keys(env).filter((k) => !SYSTEM.test(k));
-  const keyName = ["GEMINI_API_KEY", ...custom.filter((k) => /GEMINI/i.test(k)), ...custom.filter((k) => /GOOGLE|GENAI|AI_STUDIO/i.test(k)), ...custom.filter((k) => /^\s*AIza/.test(env[k] || ""))]
+  const keyName = ["GEMINI_API_KEY", ...custom.filter((k) => /GEMINI/i.test(k)), ...custom.filter((k) => /GOOGLE|GENAI|AI_STUDIO/i.test(k)), ...custom.filter((k) => /^\s*AIza/.test(env[k] || "")), ...custom.filter((k) => /^API[_ ]?KEY$/i.test(k.trim()))]
     .find((k) => env[k] && env[k].trim());
   const key = keyName ? env[keyName].trim() : "";
   if (!key) {
