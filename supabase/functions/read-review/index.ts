@@ -70,8 +70,17 @@ Deno.serve(async (req) => {
     return json({ error: "not_owner" }, 403);
   }
 
-  const key = Deno.env.get("GEMINI_API_KEY");
-  if (!key) return json({ error: "no_key" }, 503);
+  // השם המומלץ הוא GEMINI_API_KEY, אבל מקבלים גם שם קרוב (למשל GEMINI_KEY או GOOGLE_API_KEY)
+  const env = Deno.env.toObject();
+  const SYSTEM = /^(SUPABASE_|SB_|DENO_|PATH$|HOME$|HOSTNAME$|PWD$|LANG$)/;
+  const custom = Object.keys(env).filter((k) => !SYSTEM.test(k));
+  const keyName = ["GEMINI_API_KEY", ...custom.filter((k) => /GEMINI/i.test(k)), ...custom.filter((k) => /GOOGLE|GENAI|AI_STUDIO/i.test(k)), ...custom.filter((k) => /^\s*AIza/.test(env[k] || ""))]
+    .find((k) => env[k] && env[k].trim());
+  const key = keyName ? env[keyName].trim() : "";
+  if (!key) {
+    console.error("no gemini key; custom secret names:", custom.join(", ") || "(none)");
+    return json({ error: "no_key" }, 503);
+  }
 
   let input: { image?: string; mime?: string };
   try { input = await req.json(); } catch { return json({ error: "bad_request" }, 400); }
