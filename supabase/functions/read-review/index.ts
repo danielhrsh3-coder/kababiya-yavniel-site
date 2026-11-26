@@ -105,7 +105,8 @@ Deno.serve(async (req) => {
   if (!data || data.length > 8_000_000) return json({ error: "bad_image" }, 400);
 
   // אם מודל עמוס / איטי / לא קיים, עוברים למודל הבא. סה"כ עד כ-45 שניות.
-  const models = [Deno.env.get("GEMINI_MODEL"), "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"]
+  // גוגל מחליפים דגמים מדי פעם; אם אחד לא קיים (404) או עמוס (503) עוברים לבא.
+  const models = [Deno.env.get("GEMINI_MODEL"), "gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash"]
     .filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
   const started = Date.now();
   const RETRY = [404, 429, 500, 503, 504];
@@ -116,11 +117,18 @@ Deno.serve(async (req) => {
     if (left < 4000) break;
     last = await askGemini(key, model, mime, data, Math.min(18000, left));
     if (last.ok) break;
+    if (last.status === 503 && Date.now() - started < 30000) {
+      // עומס רגעי: ניסיון אחד נוסף אחרי הפסקה קצרה
+      await new Promise((r) => setTimeout(r, 1500));
+      last = await askGemini(key, model, mime, data, Math.min(18000, 45000 - (Date.now() - started)));
+      if (last.ok) break;
+    }
     console.error("gemini", model, last.status, JSON.stringify(last.body).slice(0, 300));
-    if (!RETRY.includes(last.status)) break;
+    if (!RETRY.includes(last.status) && !(last.status === 400 && !/api.?key/i.test(JSON.stringify(last.body)))) break;
   }
   if (!last.ok) {
-    const code = last.status === 429 ? "quota" : (last.status === 400 || last.status === 403) ? "bad_key"
+    const keyProblem = /api.?key/i.test(JSON.stringify(last.body));
+    const code = last.status === 429 ? "quota" : ((last.status === 400 || last.status === 403) && keyProblem) ? "bad_key"
       : [500, 503, 504].includes(last.status) ? "busy" : "gemini";
     console.error("gemini error", last.status, JSON.stringify(last.body).slice(0, 500));
     return json({ error: code }, 502);
