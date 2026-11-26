@@ -7,7 +7,7 @@
 <script>(function(){var l=location,c=window.KABABIA_CONFIG||{};var all=!!c.gateAll;if(all||/(^|[?&])edit(=|&|$)/.test(l.search)||l.hash==='#edit'){var h=document.documentElement;h.className+=' ed-gate';if(!all)setTimeout(function(){h.className=h.className.replace(' ed-gate','')},20000);}})();</script>
 <style>html.ed-gate,html.ed-gate body{background:#000!important}html.ed-gate body{visibility:hidden}html.ed-gate .ed-overlay{visibility:visible}</style>
 <title>הקבביה ביבניאל | בטעם של עוד...</title>
-<meta name="description" content="הקבביה ביבניאל - עגלת אוכל בשרית כשרה למהדרין. קבב, המבורגר, שניצל, חומוס ועוד. משלוחים ביבניאל והסביבה.">
+<meta name="description" content="הקבביה ביבניאל - עגלת אוכל בשרית כשרה למהדרין. קבב, המבורגר, שניצל, חומוס ועוד. משלוחים ביבנאל והסביבה לפי בקשה, שלחו לנו הודעה בוואטסאפ לתיאום.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Suez+One&family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -90,7 +90,7 @@
         </div>
         <div class="perk-card">
           <span class="perk-icon">🛵</span>
-          <span class="perk-title">משלוחים ביבניאל והסביבה</span>
+          <span class="perk-title">משלוחים ביבנאל והסביבה לפי בקשה, שלחו לנו הודעה בוואטסאפ לתיאום</span>
         </div>
       </div>
     </div>
@@ -376,6 +376,14 @@
     </div>
   </section>
 
+  <!-- ביקורות שבעל העסק הוסיף מצילומי מסך של גוגל (נטען מהמסד, מוסתר כשאין) -->
+  <section class="reviews reviews-shots" id="reviews-google" hidden>
+    <div class="section-inner">
+      <h2 class="section-title">עוד ביקורות מגוגל</h2>
+      <div class="reviews-grid" id="reviews-shots-grid"></div>
+    </div>
+  </section>
+
   <section class="kashrut" id="kashrut">
     <div class="section-inner">
       <h2 class="section-title">כשרות</h2>
@@ -405,7 +413,7 @@
             </tbody>
           </table>
           <div class="hours-notes" id="hours-notes" hidden></div>
-          <p><strong>משלוחים:</strong> ביבניאל והסביבה</p>
+          <p class="delivery-note">משלוחים ביבנאל והסביבה לפי בקשה, שלחו לנו הודעה בוואטסאפ לתיאום</p>
           <div class="location-actions">
             <a href="https://ul.waze.com/ul?venue_id=23265607.232721607.2099497&overview=yes&utm_campaign=default&utm_source=waze_website&utm_medium=lm_share_location" target="_blank" rel="noopener" class="btn btn-waze">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.11 2 11.2c0 2.85 1.4 5.39 3.6 7.08-.06.53-.24 1.42-.79 2.29-.1.16.02.36.21.34 1.06-.13 2.4-.5 3.42-1.29.82.22 1.69.34 2.56.34.4 0 .79-.02 1.17-.07-.24-.44-.37-.94-.37-1.47 0-1.77 1.5-3.2 3.35-3.2.28 0 .55.03.81.1.24-.63.37-1.31.37-2.02C22 6.11 17.52 2 12 2zM8.6 10.4a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4zm6.8 0a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4zm-6.9 2.6c.4 1.5 1.85 2.6 3.5 2.6s3.1-1.1 3.5-2.6H8.5zM19.35 15c-1.75 0-3.15 1.34-3.15 3s1.4 3 3.15 3 3.15-1.34 3.15-3-1.4-3-3.15-3zm0 4.2c-.72 0-1.3-.54-1.3-1.2s.58-1.2 1.3-1.2 1.3.54 1.3 1.2-.58 1.2-1.3 1.2z"/></svg>
@@ -434,7 +442,7 @@
 <footer class="site-footer" id="contact">
   <div class="section-inner footer-inner">
     <h2 class="footer-title">רעבים? אנחנו כאן!</h2>
-    <p class="footer-sub">משלוחים ביבניאל והסביבה</p>
+    <p class="footer-sub">משלוחים ביבנאל והסביבה לפי בקשה, שלחו לנו הודעה בוואטסאפ לתיאום</p>
     <div class="footer-actions">
       <a href="tel:0547999769" class="btn btn-outline">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.24.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>
@@ -493,6 +501,7 @@
 <script src="menu.js"></script>
 <script src="hours.js"></script>
 <script src="feedback.js"></script>
+<script src="track.js"></script>
 
 <script>
 /* סרטונים: לופ מושתק תמיד; שמע מופעל רק בלחיצה על הכפתור,

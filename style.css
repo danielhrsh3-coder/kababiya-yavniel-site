@@ -1066,3 +1066,76 @@ body.popup-open { overflow: hidden; }
 .fb-thanks { margin: 6px 0; text-align: center; color: #fff; font-weight: 700; font-size: 17px; }
 /* בעל העסק במצב עריכה לא צריך את התיבה הציבורית */
 body.ed-on .fb-box { display: none; }
+
+/* ---------- משלוחים ---------- */
+.delivery-note { font-weight: 700; color: var(--gold-light); }
+
+/* ---------- תגיות מנה: מובילות / אזל ---------- */
+.dish-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dish-top {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  color: #2b1a00;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.dish-tag.is-soldout { background: #5a5a5a; color: #fff; letter-spacing: .5px; }
+
+/* מנה שאזלה: נשארת בתפריט, באפור */
+.menu-dish.is-soldout { border-color: #333; }
+.menu-dish.is-soldout .menu-dish-img { filter: grayscale(1); opacity: .55; }
+.menu-dish.is-soldout .menu-dish-name,
+.menu-dish.is-soldout .price,
+.menu-dish.is-soldout .price-options { color: #8a8a8a; opacity: .8; }
+.menu-dish.is-soldout:hover { transform: none; border-color: #333; }
+.menu-list li.is-soldout > span:first-child,
+.menu-list li.is-soldout .price { color: #8a8a8a; }
+
+/* ---------- דירוג אימוג'י ---------- */
+.dish-rate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 2px;
+}
+.dish-rate-q { font-size: 13.5px; color: #a79f93; }
+.dish-rate-faces { display: inline-flex; gap: 2px; }
+.dish-rate-btn {
+  width: 38px; height: 38px;
+  border: 0; border-radius: 50%;
+  background: transparent;
+  font-size: 22px; line-height: 1;
+  cursor: pointer;
+  filter: grayscale(.6); opacity: .8;
+  transition: transform .15s, filter .15s, opacity .15s;
+}
+.dish-rate-btn:hover, .dish-rate-btn:focus-visible { filter: none; opacity: 1; transform: scale(1.18); outline: none; background: rgba(245,158,11,.12); }
+.dish-rate-thanks { font-size: 14px; color: var(--gold-light); font-weight: 700; }
+.dish-rate.is-asking { flex-direction: column; align-items: stretch; gap: 6px; width: 100%; }
+.dish-rate-chosen { font-size: 24px; line-height: 1; }
+.dish-rate-label { font-size: 14px; color: var(--cream); }
+.dish-rate-text {
+  width: 100%;
+  font: 15px 'Heebo', sans-serif;
+  color: var(--cream);
+  background: var(--black);
+  border: 1px solid rgba(245,158,11,.45);
+  border-radius: 8px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+.dish-rate-actions { display: flex; gap: 8px; }
+.dish-rate-send, .dish-rate-skip {
+  min-height: 38px; padding: 0 14px; border-radius: 8px; cursor: pointer;
+  font: 700 14.5px 'Heebo', sans-serif;
+}
+.dish-rate-send { background: var(--gold); color: #2b1a00; border: 0; }
+.dish-rate-skip { background: transparent; color: #cfc7ba; border: 1px solid #5a5045; }
+
+/* ---------- ביקורות מצילומי מסך ---------- */
+.reviews-shots { background: var(--black); }
+.reviews-shots .review-card { background: var(--charcoal); }

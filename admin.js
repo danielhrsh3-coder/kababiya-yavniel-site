@@ -1173,6 +1173,365 @@
     });
   }
 
+
+  /* ======================================================================
+     דירוגי מנות (אימוג'י): סיכום ליד כל מנה + פירוט והערות. רק לבעלים.
+     ====================================================================== */
+  var votes = [];
+
+  function computeVoteStats() {
+    var st = {};
+    votes.forEach(function (v) {
+      var x = st[v.dish_id] || (st[v.dish_id] = { n: 0, sum: 0, avg: 0, comments: 0, dist: [0, 0, 0, 0, 0] });
+      x.n++; x.sum += v.score; x.dist[v.score - 1]++;
+      if (v.comment) x.comments++;
+    });
+    Object.keys(st).forEach(function (k) { st[k].avg = st[k].sum / st[k].n; });
+    S.voteStats = st;
+  }
+
+  function loadVotes() {
+    return Store.loadVotes().then(function (rows) {
+      votes = rows || [];
+      computeVoteStats();
+      if (inEdit) App.render();
+    }, function () { /* הסיכום הוא תוספת; שגיאה לא מפריעה לעריכה */ });
+  }
+
+  function facesBars(dist, n) {
+    return '<div class="ed-rate-bars">' + [4, 3, 2, 1, 0].map(function (i) {
+      var c = dist[i], pct = n ? Math.round(c * 100 / n) : 0;
+      return '<div class="ed-rate-bar"><span class="ed-rate-face" title="' + App.FACE_NAMES[i] + '">' + App.FACES[i] + '</span>' +
+        '<span class="ed-rate-track"><span style="width:' + pct + '%"></span></span>' +
+        '<span class="ed-rate-num">' + c + '</span></div>';
+    }).join('') + '</div>';
+  }
+
+  function openRatings(dishId) {
+    var d = S.dishes.filter(function (x) { return x.id === dishId; })[0];
+    if (!d) return;
+    var m = openModal(
+      '<div class="ed-form">' +
+        '<h2 class="ed-title">' + esc(d.name) + ': דירוגים</h2>' +
+        '<p class="ed-text">רק אתם רואים את זה. ללקוחות מוצגות רק 3 המנות המובילות (⭐1, ⭐2, ⭐3), לפי הדירוגים "בסדר" ומעלה, ורק למנה עם 5 דירוגים כאלה לפחות.</p>' +
+        '<div class="ed-rate-body"></div>' +
+        '<div class="ed-actions"><button type="button" class="ed-btn ed-btn-primary" data-act="cancel">סגור</button></div>' +
+      '</div>', 'ed-modal-form');
+    var el = m.el, body = $(el, '.ed-rate-body');
+
+    function render() {
+      var mine = votes.filter(function (v) { return v.dish_id === dishId; });
+      if (!mine.length) { body.innerHTML = '<p class="ed-ovr-empty">עוד אין דירוגים למנה הזו.</p>'; return; }
+      var st = S.voteStats[dishId] || { n: 0, avg: 0, dist: [0, 0, 0, 0, 0] };
+      var pub = mine.filter(function (v) { return v.score >= 3; });
+      var pubAvg = pub.length ? pub.reduce(function (a, v) { return a + v.score; }, 0) / pub.length : 0;
+      var comments = mine.filter(function (v) { return v.comment; });
+      body.innerHTML =
+        '<div class="ed-fb-sum">ממוצע ' + st.avg.toFixed(1) + ' מתוך 5 · ' + st.n + ' דירוגים</div>' +
+        facesBars(st.dist, st.n) +
+        '<p class="ed-text ed-text-small">לדירוג המוביל נספרים ' + pub.length + ' דירוגים' + (pub.length ? ' (ממוצע ' + pubAvg.toFixed(1) + ')' : '') +
+          (pub.length < 5 ? '. צריך לפחות 5 כדי להיכנס.' : '.') + '</p>' +
+        '<h3 class="ed-sub">הערות של לקוחות</h3>' +
+        (comments.length ? '<div class="ed-fb-list">' + comments.map(function (v) {
+          return '<div class="ed-fb-item"><div class="ed-fb-head">' +
+            '<span class="ed-rate-face">' + App.FACES[v.score - 1] + '</span>' +
+            '<span class="ed-fb-when">' + esc(feedbackWhen(v.created_at)) + '</span>' +
+            '<button type="button" class="ed-fb-del" data-del="' + esc(v.id) + '" aria-label="מחק הערה" title="מחק">🗑</button>' +
+            '</div><div class="ed-fb-text">' + esc(v.comment) + '</div></div>';
+        }).join('') + '</div>' : '<p class="ed-ovr-empty">אין הערות.</p>');
+    }
+    render();
+
+    el.addEventListener('click', function (e) {
+      var t = e.target.closest('button');
+      if (!t) return;
+      if (t.dataset.act === 'cancel') { m.close(); return; }
+      if (t.dataset.del) {
+        var id = t.dataset.del;
+        confirmDialog({ title: 'למחוק את הדירוג וההערה?', text: 'אי אפשר לשחזר אחרי המחיקה.', ok: 'כן, מחק', danger: true }).then(function (yes) {
+          if (!yes) return;
+          Store.deleteVote(id).then(function () {
+            votes = votes.filter(function (v) { return v.id !== id; });
+            computeVoteStats(); render(); App.render();
+            toast('נמחק');
+          }, function (er) { fail(er, 'למחוק'); });
+        });
+      }
+    });
+  }
+
+  /* ---------- מתג "אזל" ---------- */
+  function onSoldOutChange(e) {
+    var box = e.target;
+    if (!inEdit || !box || !box.hasAttribute || !box.hasAttribute('data-soldout')) return;
+    var id = box.getAttribute('data-soldout'), on = box.checked;
+    box.disabled = true;
+    Store.setSoldOut(id, on).then(function (saved) {
+      S.dishes = S.dishes.map(function (x) { return x.id === saved.id ? saved : x; });
+      App.render();
+      flash(saved.id);
+      toast(on ? 'סומן "אזל". המנה מופיעה באפור עד שתחזירו אותה' : 'המנה חזרה לתפריט ✓');
+    }, function (er) { box.checked = !on; box.disabled = false; fail(er, 'לשמור'); });
+  }
+
+  /* ======================================================================
+     דשבורד: ביקורים, לחיצות ודירוגים
+     ====================================================================== */
+  var RANGES = [
+    { k: 'today', label: 'היום', days: 1 },
+    { k: 'week', label: 'השבוע', days: 7, sub: '7 הימים האחרונים' },
+    { k: 'month', label: 'החודש', days: 30, sub: '30 הימים האחרונים' },
+    { k: 'q', label: '3 חודשים', days: 90, sub: '90 הימים האחרונים' }
+  ];
+  var METRICS = [
+    { k: 'visit', label: 'ביקורים באתר', icon: '👀' },
+    { k: 'whatsapp', label: 'לחיצות וואטסאפ', icon: '💬' },
+    { k: 'call', label: 'לחיצות חיוג', icon: '📞' },
+    { k: 'waze', label: 'לחיצות Waze', icon: '🧭' },
+    { k: 'votes', label: 'דירוגי מנות', icon: '😁' }
+  ];
+
+  function voteDay(v) {
+    try {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(v.created_at));
+    } catch (e) { return String(v.created_at).slice(0, 10); }
+  }
+
+  function sparkSVG(series, label) {
+    var w = 300, h = 64, pad = 4, n = series.length;
+    var max = Math.max.apply(null, series.concat([1]));
+    var pts = series.map(function (y, i) {
+      var x = n === 1 ? w / 2 : pad + i * (w - 2 * pad) / (n - 1);
+      return x.toFixed(1) + ',' + (h - pad - (y / max) * (h - 2 * pad)).toFixed(1);
+    });
+    var area = 'M' + pts[0].split(',')[0] + ',' + (h - pad) + ' L' + pts.join(' L') + ' L' + pts[pts.length - 1].split(',')[0] + ',' + (h - pad) + ' Z';
+    return '<svg class="ed-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" role="img" aria-label="' + esc(label) + '">' +
+      '<path d="' + area + '" class="ed-spark-area"/>' +
+      '<polyline points="' + pts.join(' ') + '" class="ed-spark-line" vector-effect="non-scaling-stroke"/></svg>';
+  }
+
+  function changeHTML(cur, prev) {
+    if (!prev) return cur ? '<span class="ed-chg is-up">חדש</span>' : '<span class="ed-chg">—</span>';
+    var pct = Math.round((cur - prev) * 100 / prev);
+    if (pct === 0) return '<span class="ed-chg">0%</span>';
+    return '<span class="ed-chg ' + (pct > 0 ? 'is-up' : 'is-down') + '">' + (pct > 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '%</span>';
+  }
+
+  function openDashboard() {
+    var today = Store.todayIL();
+    var from = Store.addDays(today, -179);
+    var range = 'week';
+    var byDay = {};   // byDay[kind][day] = n
+    var loaded = false;
+
+    var m = openModal(
+      '<div class="ed-form">' +
+        '<h2 class="ed-title">📊 נתונים</h2>' +
+        '<div class="ed-chips ed-range" role="radiogroup">' +
+          RANGES.map(function (r) { return '<button type="button" class="ed-chip" role="radio" data-range="' + r.k + '">' + r.label + '</button>'; }).join('') +
+        '</div>' +
+        '<p class="ed-text ed-text-small ed-range-sub"></p>' +
+        '<div class="ed-dash"><p class="ed-ovr-empty">טוען…</p></div>' +
+        '<div class="ed-actions"><button type="button" class="ed-btn ed-btn-primary" data-act="cancel">סגור</button></div>' +
+      '</div>', 'ed-modal-form ed-modal-wide');
+    var el = m.el, dash = $(el, '.ed-dash'), sub = $(el, '.ed-range-sub');
+
+    function sumDays(kind, start, len) {
+      var t = 0, map = byDay[kind] || {};
+      for (var i = 0; i < len; i++) t += map[Store.addDays(start, i)] || 0;
+      return t;
+    }
+    function seriesOf(kind, start, len) {
+      var out = [], map = byDay[kind] || {};
+      for (var i = 0; i < len; i++) out.push(map[Store.addDays(start, i)] || 0);
+      return out;
+    }
+
+    function render() {
+      Array.prototype.forEach.call(el.querySelectorAll('[data-range]'), function (b) {
+        var on = b.dataset.range === range;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+      var R0 = RANGES.filter(function (r) { return r.k === range; })[0];
+      sub.textContent = R0.sub ? R0.sub + ', בהשוואה לתקופה שלפניה' : 'מהבוקר עד עכשיו';
+      if (!loaded) return;
+      var len = R0.days, start = Store.addDays(today, -(len - 1)), prevStart = Store.addDays(start, -len);
+      var isToday = range === 'today';
+
+      var cards = METRICS.map(function (mt) {
+        var cur = sumDays(mt.k, start, len);
+        var prev = sumDays(mt.k, prevStart, len);
+        return '<div class="ed-stat">' +
+          '<div class="ed-stat-head"><span class="ed-stat-icon" aria-hidden="true">' + mt.icon + '</span><span>' + mt.label + '</span></div>' +
+          '<div class="ed-stat-num"><b>' + cur + '</b>' + (isToday ? '' : changeHTML(cur, prev)) + '</div>' +
+          (isToday ? '' : sparkSVG(seriesOf(mt.k, start, len), mt.label + ' לפי ימים')) +
+        '</div>';
+      }).join('');
+
+      /* דירוגים לפי מנה בתקופה */
+      var inRange = votes.filter(function (v) { var d = voteDay(v); return d >= start && d <= today; });
+      var per = {};
+      inRange.forEach(function (v) {
+        var x = per[v.dish_id] || (per[v.dish_id] = { n: 0, sum: 0, c: 0 });
+        x.n++; x.sum += v.score; if (v.comment) x.c++;
+      });
+      var names = {};
+      S.dishes.forEach(function (d) { names[d.id] = d.name; });
+      var rows = Object.keys(per).filter(function (k) { return names[k]; }).map(function (k) {
+        return { id: k, name: names[k], n: per[k].n, avg: per[k].sum / per[k].n, c: per[k].c };
+      }).sort(function (a, b) { return (b.avg - a.avg) || (b.n - a.n); });
+      var table = rows.length
+        ? '<div class="ed-dish-rates">' + rows.map(function (r) {
+            return '<button type="button" class="ed-dish-rate" data-rates="' + esc(r.id) + '">' +
+              '<span class="ed-dish-rate-name">' + esc(r.name) + '</span>' +
+              '<span>' + App.FACES[Math.max(0, Math.min(4, Math.round(r.avg) - 1))] + ' ' + r.avg.toFixed(1) + '</span>' +
+              '<span class="ed-dish-rate-n">' + r.n + ' דירוגים' + (r.c ? ' · 💬 ' + r.c : '') + '</span></button>';
+          }).join('') + '</div>'
+        : '<p class="ed-ovr-empty">אין דירוגי מנות בתקופה הזו.</p>';
+
+      dash.innerHTML = '<div class="ed-stats">' + cards + '</div>' +
+        '<h3 class="ed-sub">דירוגי המנות בתקופה</h3>' + table;
+    }
+    render();
+
+    Store.loadEventDays(from).then(function (rows) {
+      rows.forEach(function (r) {
+        var map = byDay[r.kind] || (byDay[r.kind] = {});
+        map[String(r.day).slice(0, 10)] = (map[String(r.day).slice(0, 10)] || 0) + Number(r.n || 0);
+      });
+      var vmap = byDay.votes = {};
+      votes.forEach(function (v) { var d = voteDay(v); vmap[d] = (vmap[d] || 0) + 1; });
+      loaded = true;
+      render();
+    }, function (er) { m.close(); fail(er, 'לטעון את הנתונים'); });
+
+    el.addEventListener('click', function (e) {
+      var t = e.target.closest('button');
+      if (!t) return;
+      if (t.dataset.range) { range = t.dataset.range; render(); return; }
+      if (t.dataset.act === 'cancel') m.close();
+    });
+  }
+
+  /* ======================================================================
+     ביקורת חדשה מצילום מסך של גוגל (Gemini קורא, הבעלים מאשר)
+     ====================================================================== */
+  var SHOT_ERRORS = {
+    no_key: 'קריאה אוטומטית עוד לא הופעלה (חסר מפתח Gemini). אפשר למלא את הפרטים ידנית.',
+    bad_key: 'מפתח ה-Gemini לא תקין. אפשר למלא את הפרטים ידנית.',
+    quota: 'Gemini עמוס כרגע (מכסה חינמית). נסו שוב בעוד דקה, או מלאו ידנית.',
+    unreadable: 'לא הצלחנו לקרוא את התמונה. נסו צילום ברור יותר, או מלאו ידנית.',
+    not_owner: 'אין הרשאה. צריך להיכנס שוב.',
+    network: 'לא הצלחנו לקרוא את התמונה. בדקו אינטרנט, או מלאו ידנית.'
+  };
+
+  function openShotForm() {
+    var stars = 5, busy = false;
+    var m = openModal(
+      '<form class="ed-form" novalidate>' +
+        '<h2 class="ed-title">📷 ביקורת מצילום מסך</h2>' +
+        '<p class="ed-text">צלמו מסך של ביקורת בגוגל מפות ובחרו אותו כאן. הפרטים יתמלאו לבד. בדקו אותם, ורק אחרי "אישור" הביקורת עולה לאתר.</p>' +
+        '<div class="ed-field"><div class="ed-photo ed-photo-wide">' +
+          '<div class="ed-photo-preview ed-photo-rect ed-shot-preview" data-preview><span>אין תמונה</span></div>' +
+          '<div class="ed-photo-btns"><button type="button" class="ed-btn ed-btn-secondary" data-act="pick">📷 בחר צילום מסך</button></div>' +
+          '<input type="file" accept="image/*" hidden>' +
+        '</div></div>' +
+        '<p class="ed-shot-status" role="status" aria-live="polite" hidden></p>' +
+        '<div class="ed-shot-fields" hidden>' +
+          '<label class="ed-field"><span class="ed-label">שם הכותב</span>' +
+            '<input class="ed-input" name="author" type="text" maxlength="60" autocomplete="off"></label>' +
+          '<div class="ed-field"><span class="ed-label">כוכבים</span>' +
+            '<div class="ed-stars" role="radiogroup" aria-label="כוכבים">' +
+              [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="ed-star" data-n="' + n + '" role="radio" aria-label="' + n + ' כוכבים">★</button>'; }).join('') +
+            '</div></div>' +
+          '<label class="ed-field"><span class="ed-label">מה נכתב בביקורת</span>' +
+            '<textarea class="ed-input ed-textarea" name="text" rows="6" maxlength="2000"></textarea></label>' +
+          '<label class="ed-field"><span class="ed-label">קישור לביקורת בגוגל מפות <small>(לא חובה)</small></span>' +
+            '<input class="ed-input" name="url" type="url" inputmode="url" dir="ltr" maxlength="500" autocomplete="off" placeholder="https://maps.app.goo.gl/..."></label>' +
+        '</div>' +
+        '<p class="ed-error" role="alert" hidden></p>' +
+        '<div class="ed-actions">' +
+          '<button type="submit" class="ed-btn ed-btn-primary" hidden>✅ אישור ופרסום</button>' +
+          '<button type="button" class="ed-btn ed-btn-ghost" data-act="cancel">ביטול</button>' +
+        '</div>' +
+      '</form>', 'ed-modal-form');
+    var el = m.el, form = $(el, 'form'), err = $(el, '.ed-error');
+    var fileIn = $(el, 'input[type=file]'), preview = $(el, '[data-preview]');
+    var status = $(el, '.ed-shot-status'), fields = $(el, '.ed-shot-fields'), ok = $(el, '.ed-btn-primary');
+    var previewURL = null;
+    m.onClose = function () { if (previewURL) { try { URL.revokeObjectURL(previewURL); } catch (e) {} } };
+
+    function refreshStars() {
+      Array.prototype.forEach.call(el.querySelectorAll('.ed-star'), function (b) {
+        b.classList.toggle('is-on', Number(b.dataset.n) <= stars);
+        b.setAttribute('aria-checked', Number(b.dataset.n) === stars ? 'true' : 'false');
+      });
+    }
+    function say(t, kind) {
+      status.textContent = t; status.hidden = !t;
+      status.className = 'ed-shot-status' + (kind ? ' is-' + kind : '');
+    }
+    function showFields() { fields.hidden = false; ok.hidden = false; refreshStars(); }
+
+    fileIn.addEventListener('change', function () {
+      var file = fileIn.files && fileIn.files[0];
+      fileIn.value = '';
+      if (!file || busy) return;
+      err.hidden = true;
+      busy = true;
+      say('⏳ קורא את הביקורת…', 'busy');
+      resizeImage(file, 1600, 0.9).then(function (blob) {
+        if (previewURL) { try { URL.revokeObjectURL(previewURL); } catch (e) {} }
+        previewURL = URL.createObjectURL(blob);
+        preview.innerHTML = '<img alt="" src="' + esc(previewURL) + '">';
+        $(el, '[data-act=pick]').textContent = '📷 צילום אחר';
+        return Store.readReview(blob);
+      }).then(function (r) {
+        form.elements.author.value = r.author || '';
+        form.elements.text.value = r.text || '';
+        stars = r.stars || 5;
+        say('✓ נקרא. בדקו שהכול נכון ואשרו.', 'ok');
+        showFields();
+      }, function (er) {
+        if (er && er.auth) { fail(er); return; }
+        say(SHOT_ERRORS[er && er.code] || (er && er.message) || SHOT_ERRORS.network, 'warn');
+        showFields();
+      }).then(function () { busy = false; });
+    });
+
+    el.addEventListener('click', function (e) {
+      var t = e.target.closest('button');
+      if (!t) return;
+      if (t.dataset.n) { stars = Number(t.dataset.n); refreshStars(); return; }
+      if (t.dataset.act === 'pick') fileIn.click();
+      else if (t.dataset.act === 'cancel') m.close();
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      err.hidden = true;
+      var text = form.elements.text.value.trim();
+      if (!text) { err.textContent = 'חסר הטקסט של הביקורת'; err.hidden = false; form.elements.text.focus(); return; }
+      var url = form.elements.url.value.trim();
+      if (url && !/^https?:\/\//i.test(url)) { err.textContent = 'הקישור צריך להתחיל ב-https://'; err.hidden = false; return; }
+      var sorts = S.reviews.map(function (x) { return x.sort || 0; });
+      var out = {
+        id: null, author: form.elements.author.value.trim(), text: text, stars: stars, source: 'גוגל', url: url,
+        sort: Math.max.apply(null, sorts.concat([0])) + 1, visible: true, from_screenshot: true
+      };
+      ok.disabled = true; ok.textContent = 'מפרסם…';
+      Store.saveReview(out).then(function (saved) {
+        S.reviews.push(saved);
+        sortReviews();
+        App.renderReviews();
+        m.close();
+        flash(saved.id);
+        toast('הביקורת פורסמה באתר ✓');
+      }, function (er) { ok.disabled = false; ok.textContent = '✅ אישור ופרסום'; fail(er, 'לשמור'); });
+    });
+  }
+
   function buildChrome() {
     removeChrome();
     var r = doc.createElement('div');
@@ -1198,6 +1557,7 @@
       '<button type="button" class="ed-bar-btn" data-bar="popup"><span>📢</span> הודעה קופצת</button>' +
       '<button type="button" class="ed-bar-btn" data-bar="hours"><span>🕐</span> שעות פתיחה</button>' +
       '<button type="button" class="ed-bar-btn" data-bar="feedback"><span>💬</span> משוב<i class="ed-badge" hidden></i></button>' +
+      '<button type="button" class="ed-bar-btn" data-bar="stats"><span>📊</span> נתונים</button>' +
       '<button type="button" class="ed-bar-btn ed-bar-exit" data-bar="exit"><span>🚪</span> יציאה</button>';
     doc.body.appendChild(b);
     chrome.ribbon = r; chrome.bar = b;
@@ -1218,9 +1578,13 @@
 
   function onDocClick(e) {
     if (!inEdit) return;
-    var t = e.target.closest ? e.target.closest('[data-edit],[data-add],[data-edit-fillings],[data-edit-review],[data-add-review],[data-bar]') : null;
+    var t = e.target.closest ? e.target.closest('[data-edit],[data-add],[data-edit-fillings],[data-edit-review],[data-add-review],[data-add-shot],[data-rates],[data-bar]') : null;
     if (!t) return;
-    if (t.hasAttribute('data-edit-review')) {
+    if (t.hasAttribute('data-rates')) {
+      openRatings(t.getAttribute('data-rates'));
+    } else if (t.hasAttribute('data-add-shot')) {
+      openShotForm();
+    } else if (t.hasAttribute('data-edit-review')) {
       var rid = t.getAttribute('data-edit-review');
       var rv = S.reviews.filter(function (x) { return x.id === rid; })[0];
       if (rv) openReviewView(rv);
@@ -1245,6 +1609,7 @@
       else if (act === 'popup') openPopupForm();
       else if (act === 'hours') openHoursForm();
       else if (act === 'feedback') openFeedbackList();
+      else if (act === 'stats') openDashboard();
       else if (act === 'exit') {
         Store.logout();
         if (CFG.gateAll) { global.location.reload(); return; }   // אתר פרטי: חוזרים למסך השחור
@@ -1272,6 +1637,8 @@
     buildChrome();
     App.render();
     doc.addEventListener('click', onDocClick);
+    doc.addEventListener('change', onSoldOutChange);
+    loadVotes();
     setTimeout(scrollToRibbon, 0);
   }
 
@@ -1287,6 +1654,7 @@
     S.edit = false;
     doc.body.classList.remove('ed-on');
     doc.removeEventListener('click', onDocClick);
+    doc.removeEventListener('change', onSoldOutChange);
     removeChrome();
     var overlays = doc.querySelectorAll('.ed-overlay');
     Array.prototype.forEach.call(overlays, function (o) { o.parentNode.removeChild(o); });

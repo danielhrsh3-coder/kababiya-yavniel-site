@@ -341,3 +341,61 @@ body.ed-on .site-popup { z-index: 1100; }
 .ed-fb-del { border: 1px solid #7a2a22; border-radius: 8px; background: #2a1210; color: #ffb4a8; cursor: pointer; font-size: 16px; line-height: 1; padding: 6px 9px; white-space: nowrap; }
 .ed-fb-text { margin-top: 8px; white-space: pre-line; line-height: 1.6; font-size: 16px; color: #e6e0d6; overflow-wrap: anywhere; }
 .ed-fb-text.is-empty { color: #a79f93; font-style: italic; }
+
+/* ---------- ליד כל מנה: מתג אזל + סיכום דירוגים ---------- */
+.ed-dish-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 6px; }
+.ed-switch.ed-soldout { margin: 0; font-size: 16px; gap: 8px; }
+.ed-soldout .ed-switch-ui { width: 50px; height: 28px; }
+.ed-soldout .ed-switch-ui::after { width: 22px; height: 22px; }
+.ed-soldout input:checked + .ed-switch-ui { background: var(--red); }
+.ed-soldout input:checked + .ed-switch-ui::after { right: 25px; }
+.menu-list .ed-dish-tools { margin-top: 0; }
+.ed-rate-chip {
+  min-height: 36px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(245,158,11,.55); background: #2a2218; color: var(--gold-light);
+  font: 700 14px 'Heebo', sans-serif;
+}
+.ed-rate-chip.is-empty { border-color: #4a4036; background: transparent; color: #a79f93; }
+
+.ed-rate-bars { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 14px; }
+.ed-rate-bar { display: flex; align-items: center; gap: 10px; }
+.ed-rate-face { font-size: 22px; line-height: 1; }
+.ed-rate-track { flex: 1; height: 12px; border-radius: 6px; background: #2b2520; overflow: hidden; }
+.ed-rate-track span { display: block; height: 100%; background: var(--gold); border-radius: 6px; }
+.ed-rate-num { min-width: 28px; text-align: left; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ---------- דשבורד ---------- */
+.ed-modal-wide { width: min(760px, 100%); }
+.ed-range { margin-bottom: 6px; }
+.ed-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.ed-stat { padding: 12px 14px 8px; border: 2px solid #4a4036; border-radius: 12px; background: #0d0b09; }
+.ed-stat-head { display: flex; align-items: center; gap: 8px; color: #cfc7ba; font-size: 15.5px; font-weight: 700; }
+.ed-stat-icon { font-size: 18px; }
+.ed-stat-num { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 4px; }
+.ed-stat-num b { font-size: 34px; color: var(--cream); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ed-chg { font-size: 14px; font-weight: 800; color: #a79f93; }
+.ed-chg.is-up { color: #4ade80; }
+.ed-chg.is-down { color: #ff8a7a; }
+.ed-spark { display: block; width: 100%; height: 54px; }
+.ed-spark-line { fill: none; stroke: var(--gold); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ed-spark-area { fill: rgba(245, 158, 11, .14); }
+.ed-dish-rates { display: flex; flex-direction: column; gap: 6px; }
+.ed-dish-rate {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%;
+  padding: 10px 12px; border-radius: 10px; border: 1px solid #4a4036; background: #0d0b09;
+  color: var(--cream); font: 700 16px 'Heebo', sans-serif; text-align: start; cursor: pointer;
+}
+.ed-dish-rate-name { flex: 1 1 140px; }
+.ed-dish-rate-n { color: #a79f93; font-weight: 400; font-size: 14px; }
+
+/* ---------- ביקורת מצילום מסך ---------- */
+.ed-shot-preview { width: 180px; height: 140px; }
+.ed-shot-preview img { object-fit: contain; background: #fff; }
+.ed-shot-status { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: #2a2218; color: #ffe2a8; font-size: 16px; }
+.ed-shot-status.is-ok { background: #12301d; color: #a7f3c0; }
+.ed-shot-status.is-warn { background: #3a1a14; color: #ffc2b8; }
+.ed-shot-fields[hidden] { display: none; }
+
+@media (max-width: 560px) {
+  .ed-bar-btn { font-size: 12.5px; }
+}

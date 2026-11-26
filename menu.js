@@ -13,6 +13,8 @@
     dishes: Store.seedDishes(),
     settings: Store.defaultSettings(),
     reviews: [],
+    top: [],          // 3 המנות המובילות לפי הלקוחות
+    voteStats: {},    // לבעלים בלבד: סיכום דירוגים לכל מנה (ממלא admin.js)
     edit: false,
     empty: false,
     offline: false
@@ -114,6 +116,76 @@
     }).join('') + '</ul>';
   }
 
+  /* ---------- דירוג אימוג'י ---------- */
+  var FACES = ['😞', '😕', '😐', '🙂', '😁'];
+  var FACE_NAMES = ['לא טעים', 'ככה ככה', 'בסדר', 'טעים', 'מעולה'];
+  var VOTED_KEY = 'kababia_votes';
+  var VOTE_DAYS = 30;
+
+  function votedMap() {
+    try { var v = JSON.parse(global.localStorage.getItem(VOTED_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; }
+    catch (e) { return {}; }
+  }
+  function votedScore(id) {
+    var v = votedMap()[id];
+    if (!v || !v.t || Date.now() - v.t > VOTE_DAYS * 864e5) return 0;
+    return v.s || 0;
+  }
+  function markVoted(id, score) {
+    var m = votedMap();
+    m[id] = { s: score, t: Date.now() };
+    try { global.localStorage.setItem(VOTED_KEY, JSON.stringify(m)); } catch (e) {}
+  }
+  /* בחיבור חי מדרגים רק מנות שכבר שמורות במסד (לא את התפריט הסטטי לגיבוי) */
+  function canRate(d) {
+    if (!d || !d.id) return false;
+    return Store.live ? /^[0-9a-f-]{36}$/i.test(d.id) : true;
+  }
+
+  function rateHTML(d) {
+    if (!canRate(d)) return '';
+    var mine = votedScore(d.id);
+    if (mine) {
+      return '<div class="dish-rate is-done" data-rate="' + esc(d.id) + '">' +
+        '<span class="dish-rate-thanks">' + FACES[mine - 1] + ' תודה על הדירוג!</span></div>';
+    }
+    return '<div class="dish-rate" data-rate="' + esc(d.id) + '">' +
+      '<span class="dish-rate-q">איך היה?</span>' +
+      '<span class="dish-rate-faces" role="group" aria-label="דירוג ' + esc(d.name) + '">' +
+      FACES.map(function (f, i) {
+        return '<button type="button" class="dish-rate-btn" data-score="' + (i + 1) + '" aria-label="' + FACE_NAMES[i] + '" title="' + FACE_NAMES[i] + '">' + f + '</button>';
+      }).join('') +
+      '</span></div>';
+  }
+
+  function topRank(id) {
+    for (var i = 0; i < state.top.length; i++) if (state.top[i].dish_id === id) return state.top[i].rank;
+    return 0;
+  }
+  function topHTML(d) {
+    var r = topRank(d.id);
+    return r ? '<span class="dish-top" title="מקום ' + r + ' בדירוג הלקוחות" aria-label="מקום ' + r + ' בדירוג הלקוחות">⭐' + r + '</span>' : '';
+  }
+  function soldHTML(d) { return d.sold_out ? '<span class="dish-tag is-soldout">אזל</span>' : ''; }
+
+  /* כלים לבעלים ליד כל מנה: מתג "אזל" וסיכום הדירוגים */
+  function ownerToolsHTML(d, withRates) {
+    var st = state.voteStats[d.id];
+    var chip = '';
+    if (withRates) {
+      if (st && st.n) {
+        chip = '<button type="button" class="ed-rate-chip" data-rates="' + esc(d.id) + '">' +
+          FACES[Math.max(0, Math.min(4, Math.round(st.avg) - 1))] + ' ' + st.avg.toFixed(1) + ' · ' + st.n + ' דירוגים' +
+          (st.comments ? ' · 💬 ' + st.comments : '') + '</button>';
+      } else {
+        chip = '<button type="button" class="ed-rate-chip is-empty" data-rates="' + esc(d.id) + '">עוד אין דירוגים</button>';
+      }
+    }
+    return '<span class="ed-dish-tools">' +
+      '<label class="ed-switch ed-soldout"><input type="checkbox" data-soldout="' + esc(d.id) + '"' + (d.sold_out ? ' checked' : '') + '>' +
+      '<span class="ed-switch-ui"></span><span>אזל</span></label>' + chip + '</span>';
+  }
+
   function dishHTML(d, today, ed) {
     var shown = isShownPublic(d, today);
     var img;
@@ -126,12 +198,14 @@
     }
     var note = cleanNote(d.note);
     var special = !!d.special_date;
-    return '<div class="menu-dish' + (special ? ' is-special' : '') + (ed && !shown ? ' is-off' : '') + '" data-cat="' + (special ? 'specials' : esc(d.cat)) + '" data-id="' + esc(d.id) + '">' +
+    var tags = topHTML(d) + soldHTML(d) + tagHTML(d, today, ed);
+    return '<div class="menu-dish' + (special ? ' is-special' : '') + (d.sold_out ? ' is-soldout' : '') + (ed && !shown ? ' is-off' : '') + '" data-cat="' + (special ? 'specials' : esc(d.cat)) + '" data-id="' + esc(d.id) + '">' +
       img +
       '<div class="menu-dish-info">' +
-        tagHTML(d, today, ed) +
+        (tags ? '<span class="dish-tags">' + tags + '</span>' : '') +
         '<span class="menu-dish-name">' + esc(d.name) + (note ? ' <em>(' + esc(note) + ')</em>' : '') + '</span>' +
         pricesHTML(d) +
+        (ed ? ownerToolsHTML(d, true) : rateHTML(d)) +
       '</div>' +
       (ed ? pencil('data-edit="' + esc(d.id) + '"', 'עריכת המנה ' + d.name) : '') +
     '</div>';
@@ -142,11 +216,11 @@
     var ps = (d.prices || []).filter(function (x) { return String(x.price).trim() !== ''; });
     var priceText = ps.map(function (x) { return (x.label ? x.label + ' ' : '') + fmtPrice(x.price); }).join(' · ');
     var note = cleanNote(d.note);
-    var tag = tagHTML(d, today, ed);
+    var tag = soldHTML(d) + tagHTML(d, today, ed);
     var left = '<span class="price">' + esc(priceText) + '</span>';
-    return '<li class="' + (ed && !shown ? 'is-off' : '') + '" data-id="' + esc(d.id) + '">' +
+    return '<li class="' + (ed && !shown ? 'is-off' : '') + (d.sold_out ? ' is-soldout' : '') + '" data-id="' + esc(d.id) + '">' +
       '<span>' + tag + esc(d.name) + (note ? ' <em>(' + esc(note) + ')</em>' : '') + '</span>' +
-      (ed ? '<span class="ed-li-end">' + left + pencil('data-edit="' + esc(d.id) + '"', 'עריכת ' + d.name) + '</span>' : left) +
+      (ed ? '<span class="ed-li-end">' + left + ownerToolsHTML(d, false) + pencil('data-edit="' + esc(d.id) + '"', 'עריכת ' + d.name) + '</span>' : left) +
     '</li>';
   }
 
@@ -251,14 +325,28 @@
   }
 
   function renderReviews() {
+    var ed = state.edit;
+    var all = (state.reviews || []).filter(function (r) { return ed || r.visible !== false; });
+
+    /* ביקורות גוגל הקיימות */
     var sec = doc.getElementById('reviews');
     var grid = doc.getElementById('reviews-grid');
-    if (!sec || !grid) return;
-    var ed = state.edit;
-    var list = (state.reviews || []).filter(function (r) { return ed || r.visible !== false; });
-    sec.hidden = !(list.length || ed);
-    grid.innerHTML = list.map(function (r) { return reviewHTML(r, ed); }).join('') +
-      (ed ? '<button type="button" class="ed-add-tile" data-add-review><span>＋</span> הוסף חוות דעת</button>' : '');
+    if (sec && grid) {
+      var list = all.filter(function (r) { return !r.from_screenshot; });
+      sec.hidden = !(list.length || ed);
+      grid.innerHTML = list.map(function (r) { return reviewHTML(r, ed); }).join('') +
+        (ed ? '<button type="button" class="ed-add-tile" data-add-review><span>＋</span> הוסף חוות דעת</button>' : '');
+    }
+
+    /* ביקורות שנוספו מצילום מסך: סקשן משלהן */
+    var sec2 = doc.getElementById('reviews-google');
+    var grid2 = doc.getElementById('reviews-shots-grid');
+    if (sec2 && grid2) {
+      var shots = all.filter(function (r) { return r.from_screenshot; });
+      sec2.hidden = !(shots.length || ed);
+      grid2.innerHTML = shots.map(function (r) { return reviewHTML(r, ed); }).join('') +
+        (ed ? '<button type="button" class="ed-add-tile" data-add-shot><span>📷</span> הוסף ביקורת מצילום מסך</button>' : '');
+    }
   }
 
   /* ---------- טאבים (סינון קטגוריות) ---------- */
@@ -290,6 +378,43 @@
   doc.addEventListener('click', function (e) {
     var tab = e.target.closest ? e.target.closest('.menu-tab') : null;
     if (tab) applyFilter(tab.getAttribute('data-filter'));
+  });
+
+  /* ---------- לחיצה על אימוג'י ---------- */
+  function sendVote(box, id, score, comment) {
+    markVoted(id, score);
+    box.className = 'dish-rate is-done';
+    box.innerHTML = '<span class="dish-rate-thanks">' + FACES[score - 1] + ' תודה על הדירוג!</span>';
+    Store.vote(id, score, comment).catch(function (e) {
+      if (global.console) console.warn('vote failed', e);
+    });
+  }
+
+  function askComment(box, id, score) {
+    box.className = 'dish-rate is-asking';
+    box.innerHTML =
+      '<span class="dish-rate-chosen">' + FACES[score - 1] + '</span>' +
+      '<label class="dish-rate-label" for="rate-c-' + esc(id) + '">מה לא אהבת? אפשר לכתוב לנו, זה אופציונלי</label>' +
+      '<textarea class="dish-rate-text" id="rate-c-' + esc(id) + '" rows="2" maxlength="400"></textarea>' +
+      '<span class="dish-rate-actions">' +
+        '<button type="button" class="dish-rate-send">שליחה</button>' +
+        '<button type="button" class="dish-rate-skip">בלי הערה</button>' +
+      '</span>';
+    var ta = box.querySelector('textarea');
+    try { ta.focus({ preventScroll: true }); } catch (e) {}
+    box.querySelector('.dish-rate-send').addEventListener('click', function () { sendVote(box, id, score, ta.value.trim().slice(0, 400)); });
+    box.querySelector('.dish-rate-skip').addEventListener('click', function () { sendVote(box, id, score, ''); });
+  }
+
+  doc.addEventListener('click', function (e) {
+    if (state.edit) return;
+    var b = e.target.closest ? e.target.closest('.dish-rate-btn') : null;
+    if (!b) return;
+    var box = b.closest('.dish-rate');
+    var id = box && box.getAttribute('data-rate');
+    var score = Number(b.getAttribute('data-score'));
+    if (!id || !(score >= 1 && score <= 5) || votedScore(id)) return;
+    if (score <= 3) askComment(box, id, score); else sendVote(box, id, score, '');
   });
 
   /* ---------- הודעה קופצת ללקוחות ---------- */
@@ -345,7 +470,7 @@
   }
 
   /* ---------- טעינת הנתונים ---------- */
-  function signature(d) { return JSON.stringify([d.dishes, d.settings, d.reviews]); }
+  function signature(d) { return JSON.stringify([d.dishes, d.settings, d.reviews, d.top]); }
 
   function notifySettings() {
     try { doc.dispatchEvent(new CustomEvent('kababia:settings', { detail: state.settings })); } catch (e) {}
@@ -353,6 +478,7 @@
 
   function applyData(d) {
     state.reviews = d.reviews || [];
+    state.top = d.top || [];
     if (!d.dishes.length) {
       // מסד ריק: משאירים את התפריט הסטטי שב-HTML (ובעריכה אפשר לייבא אותו)
       state.empty = true;
@@ -444,6 +570,8 @@
     endOf: endOf,
     specialLabel: specialLabel,
     renderReviews: renderReviews,
+    FACES: FACES,
+    FACE_NAMES: FACE_NAMES,
     splitItems: splitItems,
     cleanNote: cleanNote,
     showPopup: maybeShowPopup,

@@ -145,6 +145,7 @@
       prices: prices.map(function (x) { return { label: (x && x.label) || '', price: x ? x.price : '' }; }),
       sort: typeof d.sort === 'number' ? d.sort : (i + 1) * 10,
       visible: d.visible !== false,
+      sold_out: !!d.sold_out,
       special_date: d.special_date || null,
       special_until: d.special_until || null
     };
@@ -161,7 +162,8 @@
       source: r.source || '',
       url: r.url || '',
       sort: typeof r.sort === 'number' ? r.sort : (i + 1) * 10,
-      visible: r.visible !== false
+      visible: r.visible !== false,
+      from_screenshot: !!r.from_screenshot
     };
   }
 
@@ -194,11 +196,18 @@
     return out;
   }
 
+  /* 3 המנות המובילות: [{dish_id, rank}] */
+  function normTop(rows) {
+    return (Array.isArray(rows) ? rows : []).map(function (x) {
+      return { dish_id: String(x.dish_id), rank: Number(x.rank) || 0 };
+    }).filter(function (x) { return x.rank >= 1 && x.rank <= 3; });
+  }
+
   function newId() {
     return 'd_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
 
-  var DISH_FIELDS = ['cat', 'name', 'note', 'image', 'placeholder', 'prices', 'sort', 'visible', 'special_date', 'special_until'];
+  var DISH_FIELDS = ['cat', 'name', 'note', 'image', 'placeholder', 'prices', 'sort', 'visible', 'sold_out', 'special_date', 'special_until'];
   function dishBody(d) {
     var o = {};
     DISH_FIELDS.forEach(function (k) { o[k] = d[k]; });
@@ -207,7 +216,7 @@
     return o;
   }
 
-  var REVIEW_FIELDS = ['author', 'text', 'stars', 'source', 'url', 'sort', 'visible'];
+  var REVIEW_FIELDS = ['author', 'text', 'stars', 'source', 'url', 'sort', 'visible', 'from_screenshot'];
   function reviewBody(r) {
     var o = {};
     REVIEW_FIELDS.forEach(function (k) { o[k] = r[k]; });
@@ -308,12 +317,14 @@
       rest('GET', '/rest/v1/reviews?select=*&order=sort.asc,created_at.asc').catch(function (e) {
         if (e && e.auth) throw e;
         return [];
-      })
+      }),
+      rest('POST', '/rest/v1/rpc/top_dishes', {}).catch(function () { return []; })
     ]).then(function (r) {
       var data = {
         dishes: (r[0] || []).map(normDish),
         settings: mergeSettings(r[1] && r[1][0]),
-        reviews: (r[2] || []).map(normReview)
+        reviews: (r[2] || []).map(normReview),
+        top: normTop(r[3])
       };
       lsSet('cache', data);
       return data;
@@ -361,6 +372,49 @@
   }
   function liveDeleteFeedback(id) {
     return rest('DELETE', '/rest/v1/site_feedback?id=eq.' + encodeURIComponent(id), undefined, { Prefer: 'return=minimal' });
+  }
+
+  /* דירוג אימוג'י למנה: הציבור רק שולח, רק הבעלים קורא */
+  function liveVote(dishId, score, comment) {
+    return rest('POST', '/rest/v1/dish_votes', { dish_id: dishId, score: score, comment: comment || '' }, { Prefer: 'return=minimal' });
+  }
+  function liveLoadVotes() {
+    return rest('GET', '/rest/v1/dish_votes?select=id,dish_id,score,comment,created_at&order=created_at.desc&limit=10000')
+      .then(function (rows) { return Array.isArray(rows) ? rows : []; });
+  }
+  function liveDeleteVote(id) {
+    return rest('DELETE', '/rest/v1/dish_votes?id=eq.' + encodeURIComponent(id), undefined, { Prefer: 'return=minimal' });
+  }
+  function liveSetSoldOut(id, on) {
+    return rest('PATCH', '/rest/v1/dishes?id=eq.' + encodeURIComponent(id), { sold_out: !!on }, { Prefer: 'return=representation' })
+      .then(function (rows) {
+        var row = Array.isArray(rows) ? rows[0] : rows;
+        if (!row) throw new Error('השמירה לא אושרה על ידי השרת');
+        return normDish(row);
+      });
+  }
+  /* ספירה יומית של ביקורים ולחיצות: [{day, kind, n}] */
+  function liveEventDays(fromDate) {
+    return rest('POST', '/rest/v1/rpc/owner_event_days', { p_from: fromDate })
+      .then(function (rows) { return Array.isArray(rows) ? rows : []; });
+  }
+  /* צילום מסך של ביקורת -> פונקציית השרת (Gemini) -> {author, stars, text} */
+  function liveReadReview(blob) {
+    return blobToDataURL(blob).then(function (dataUrl) {
+      return call(function () {
+        return fetch(BASE + '/functions/v1/read-review', {
+          method: 'POST',
+          headers: headers({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ image: dataUrl, mime: blob.type || 'image/jpeg' })
+        });
+      });
+    }).catch(function (e) {
+      var m = String(e && e.message || '');
+      var code = /no_key/.test(m) ? 'no_key' : /quota/.test(m) ? 'quota' : /bad_key/.test(m) ? 'bad_key'
+        : /not_owner/.test(m) ? 'not_owner' : /unreadable/.test(m) ? 'unreadable' : 'network';
+      var err = new Error(code); err.code = code; if (e && e.auth) err.auth = true;
+      throw err;
+    });
   }
 
   function liveSaveSettings(s) {
@@ -435,7 +489,7 @@
     if (!lsSet('demo', s)) throw new Error('אין מקום לשמירה בדפדפן (נסה תמונה קטנה יותר)');
   }
 
-  function demoLoad() { return Promise.resolve(demoState()); }
+  function demoLoad() { var s = demoState(); s.top = demoTop(); return Promise.resolve(s); }
 
   function demoSaveDish(d) {
     return new Promise(function (resolve) {
@@ -499,6 +553,34 @@
     });
   }
 
+  function demoList(key) { var v = lsGet(key); return Array.isArray(v) ? v : []; }
+  function demoVote(dishId, score, comment) {
+    var v = demoList('demo_votes');
+    v.unshift({ id: newId(), dish_id: dishId, score: score, comment: comment || '', created_at: new Date().toISOString() });
+    lsSet('demo_votes', v);
+    return Promise.resolve(null);
+  }
+  function demoTop() {
+    var by = {};
+    demoList('demo_votes').forEach(function (x) {
+      if (x.score < 3) return;
+      var b = by[x.dish_id] || (by[x.dish_id] = { sum: 0, n: 0 });
+      b.sum += x.score; b.n++;
+    });
+    return Object.keys(by).filter(function (k) { return by[k].n >= 5; })
+      .map(function (k) { return { dish_id: k, a: by[k].sum / by[k].n, n: by[k].n }; })
+      .sort(function (x, y) { return (y.a - x.a) || (y.n - x.n); })
+      .slice(0, 3).map(function (x, i) { return { dish_id: x.dish_id, rank: i + 1 }; });
+  }
+  function demoEventDays(fromDate) {
+    var by = {};
+    demoList('demo_events').forEach(function (e) {
+      if (e.day < fromDate) return;
+      var k = e.day + '|' + e.kind; by[k] = (by[k] || 0) + 1;
+    });
+    return Promise.resolve(Object.keys(by).map(function (k) { var p = k.split('|'); return { day: p[0], kind: p[1], n: by[k] }; }));
+  }
+
   function blobToDataURL(blob) {
     return new Promise(function (resolve, reject) {
       var fr = new FileReader();
@@ -552,7 +634,8 @@
       return {
         dishes: c.dishes.map(normDish),
         settings: mergeSettings(c.settings),
-        reviews: (c.reviews || []).map(normReview)
+        reviews: (c.reviews || []).map(normReview),
+        top: normTop(c.top)
       };
     },
     load: function () { return LIVE ? liveLoad() : demoLoad(); },
@@ -564,6 +647,25 @@
     loadFeedback: function () { return LIVE ? liveLoadFeedback() : Promise.resolve([]); },
     markFeedbackSeen: function () { return LIVE ? liveMarkFeedbackSeen() : Promise.resolve(null); },
     deleteFeedback: function (id) { return LIVE ? liveDeleteFeedback(id) : Promise.resolve(null); },
+    vote: function (dishId, score, comment) { return LIVE ? liveVote(dishId, score, comment) : demoVote(dishId, score, comment); },
+    loadVotes: function () { return LIVE ? liveLoadVotes() : Promise.resolve(demoList('demo_votes')); },
+    deleteVote: function (id) {
+      if (LIVE) return liveDeleteVote(id);
+      lsSet('demo_votes', demoList('demo_votes').filter(function (x) { return x.id !== id; }));
+      return Promise.resolve(null);
+    },
+    setSoldOut: function (id, on) {
+      if (LIVE) return liveSetSoldOut(id, on);
+      var d = demoState().dishes.filter(function (x) { return x.id === id; })[0];
+      if (!d) return Promise.reject(new Error('המנה לא נמצאה'));
+      d.sold_out = !!on;
+      return demoSaveDish(d);
+    },
+    loadEventDays: function (fromDate) { return LIVE ? liveEventDays(fromDate) : demoEventDays(fromDate); },
+    readReview: function (blob) {
+      if (LIVE) return liveReadReview(blob);
+      var e = new Error('no_key'); e.code = 'no_key'; return Promise.reject(e);
+    },
     saveSettings: function (s) { return LIVE ? liveSaveSettings(s) : demoSaveSettings(s); },
     saveHours: function (h) { return LIVE ? liveSaveHours(h) : demoSaveHours(h); },
     uploadImage: function (blob) { return LIVE ? liveUpload(blob) : blobToDataURL(blob); },
