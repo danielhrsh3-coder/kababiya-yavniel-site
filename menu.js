@@ -333,9 +333,8 @@
     var grid = doc.getElementById('reviews-grid');
     if (sec && grid) {
       var list = all.filter(function (r) { return !r.from_screenshot; });
-      sec.hidden = !(list.length || ed);
-      grid.innerHTML = list.map(function (r) { return reviewHTML(r, ed); }).join('') +
-        (ed ? '<button type="button" class="ed-add-tile" data-add-review><span>＋</span> הוסף חוות דעת</button>' : '');
+      sec.hidden = !list.length;
+      grid.innerHTML = list.map(function (r) { return reviewHTML(r, ed); }).join('');
     }
 
     /* ביקורות שנוספו מצילום מסך: סקשן משלהן */
@@ -506,10 +505,10 @@
     adminAssets = new Promise(function (resolve, reject) {
       var link = doc.createElement('link');
       link.rel = 'stylesheet';
-      link.href = 'admin.css?v=20261126b';
+      link.href = 'admin.css?v=20261126c';
       doc.head.appendChild(link);
       var s = doc.createElement('script');
-      s.src = 'admin.js?v=20261126b';
+      s.src = 'admin.js?v=20261126c';
       s.onload = resolve;
       s.onerror = function () { adminAssets = null; reject(new Error('admin.js')); };
       doc.body.appendChild(s);

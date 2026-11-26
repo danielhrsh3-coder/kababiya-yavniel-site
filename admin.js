@@ -898,104 +898,6 @@
   /* ======================================================================
      חוות דעת על העסק
      ====================================================================== */
-  /* חוות דעת קיימת לא ניתנת לעריכה (שומר על האמינות): רק מוסיפים חדשה בטופס הזה */
-  function openReviewForm() {
-    var isNew = true;
-    var base = { id: null, author: '', text: '', stars: 5, source: '', url: '', sort: 0, visible: true };
-    var stars = base.stars || 5;
-    var m = openModal(
-      '<form class="ed-form" novalidate>' +
-        '<h2 class="ed-title">➕ חוות דעת חדשה</h2>' +
-        '<p class="ed-text">אפשר להעתיק לכאן ביקורת אמיתית של לקוח, למשל מגוגל.</p>' +
-        '<label class="ed-field"><span class="ed-label">מה הלקוח כתב?</span>' +
-          '<textarea class="ed-input ed-textarea" name="text" rows="5" maxlength="500" placeholder="לדוגמה: הקבב הכי טעים באזור, שירות מעולה!"></textarea></label>' +
-        '<label class="ed-field"><span class="ed-label">שם הלקוח</span>' +
-          '<input class="ed-input" name="author" type="text" maxlength="60" autocomplete="off" placeholder="לדוגמה: דני כהן"></label>' +
-        '<div class="ed-field"><span class="ed-label">כמה כוכבים נתן?</span>' +
-          '<div class="ed-stars" role="radiogroup" aria-label="כוכבים">' +
-            [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="ed-star" data-n="' + n + '" role="radio" aria-label="' + n + ' כוכבים">★</button>'; }).join('') +
-          '</div></div>' +
-        '<div class="ed-field"><span class="ed-label">מאיפה? <small>(לא חובה)</small></span>' +
-          '<input class="ed-input" name="source" type="text" maxlength="30" autocomplete="off" placeholder="לדוגמה: גוגל">' +
-          '<div class="ed-date-quick ed-source-quick">' +
-            ['גוגל', 'אינסטגרם', 'פייסבוק', 'וואטסאפ'].map(function (n) { return '<button type="button" class="ed-chip" data-source="' + n + '">' + n + '</button>'; }).join('') +
-          '</div></div>' +
-        '<label class="ed-field"><span class="ed-label">קישור לביקורת בגוגל מפות <small>(לא חובה)</small></span>' +
-          '<input class="ed-input" name="url" type="url" inputmode="url" dir="ltr" maxlength="500" autocomplete="off" placeholder="https://maps.app.goo.gl/...">' +
-          '<small class="ed-hint">איך מקבלים? בגוגל מפות, ליד הביקורת לוחצים על שלוש הנקודות ← "שתף ביקורת" ← "העתק קישור", ומדביקים כאן. הלקוחות יראו כפתור שמוביל לביקורת המקורית.</small></label>' +
-        '<label class="ed-switch"><input type="checkbox" name="on"><span class="ed-switch-ui"></span><span>להציג באתר</span></label>' +
-        '<p class="ed-error" role="alert" hidden></p>' +
-        '<div class="ed-actions">' +
-          '<button type="submit" class="ed-btn ed-btn-primary">💾 שמור</button>' +
-          '<button type="button" class="ed-btn ed-btn-ghost" data-act="cancel">ביטול</button>' +
-        '</div>' +
-      '</form>', 'ed-modal-form');
-    var el = m.el, form = $(el, 'form'), err = $(el, '.ed-error');
-    form.elements.text.value = base.text;
-    form.elements.author.value = base.author;
-    form.elements.source.value = base.source;
-    form.elements.url.value = base.url || '';
-    form.elements.on.checked = base.visible !== false;
-
-    function refreshStars() {
-      Array.prototype.forEach.call(el.querySelectorAll('.ed-star'), function (b) {
-        var on = Number(b.dataset.n) <= stars;
-        b.classList.toggle('is-on', on);
-        b.setAttribute('aria-checked', Number(b.dataset.n) === stars ? 'true' : 'false');
-      });
-    }
-    refreshStars();
-
-    el.addEventListener('click', function (e) {
-      var t = e.target.closest('button');
-      if (!t) return;
-      if (t.dataset.n) { stars = Number(t.dataset.n); refreshStars(); return; }
-      if (t.dataset.source) { form.elements.source.value = t.dataset.source; return; }
-      switch (t.dataset.act) {
-        case 'cancel': m.close(); break;
-      }
-    });
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      err.hidden = true;
-      var text = form.elements.text.value.trim();
-      if (!text) {
-        err.textContent = 'חסר הטקסט של חוות הדעת'; err.hidden = false;
-        form.elements.text.focus();
-        return;
-      }
-      var url = form.elements.url.value.trim();
-      if (url && !/^https?:\/\//i.test(url)) {
-        err.textContent = 'הקישור צריך להתחיל ב-https://'; err.hidden = false;
-        form.elements.url.focus();
-        return;
-      }
-      var sorts = S.reviews.map(function (x) { return x.sort || 0; });
-      var out = clone(base);
-      out.url = url;
-      out.text = text;
-      out.author = form.elements.author.value.trim();
-      out.source = form.elements.source.value.trim();
-      out.stars = stars;
-      out.visible = form.elements.on.checked;
-      if (isNew) out.sort = Math.max.apply(null, sorts.concat([0])) + 1;
-      var btn = $(el, '.ed-btn-primary');
-      btn.disabled = true; btn.textContent = 'שומר…';
-      Store.saveReview(out).then(function (saved) {
-        var idx = -1;
-        S.reviews.forEach(function (x, i) { if (x.id === saved.id) idx = i; });
-        if (idx >= 0) S.reviews[idx] = saved; else S.reviews.push(saved);
-        sortReviews();
-        App.renderReviews();
-        m.close();
-        flash(saved.id);
-        toast('חוות הדעת נוספה ✓');
-      }, function (er) { btn.disabled = false; btn.textContent = '💾 שמור'; fail(er, 'לשמור'); });
-    });
-    setTimeout(function () { if (isNew) form.elements.text.focus(); }, 60);
-  }
-
   /* חוות דעת קיימת: תצוגה בלבד. אפשר להזיז, להסתיר או למחוק, אבל לא לשנות טקסט וכוכבים */
   function openReviewView(review) {
     var who = review.author ? esc(review.author) + (review.source ? ' · ' + esc(review.source) : '') : esc(review.source || '');
@@ -1578,7 +1480,7 @@
 
   function onDocClick(e) {
     if (!inEdit) return;
-    var t = e.target.closest ? e.target.closest('[data-edit],[data-add],[data-edit-fillings],[data-edit-review],[data-add-review],[data-add-shot],[data-rates],[data-bar]') : null;
+    var t = e.target.closest ? e.target.closest('[data-edit],[data-add],[data-edit-fillings],[data-edit-review],[data-add-shot],[data-rates],[data-bar]') : null;
     if (!t) return;
     if (t.hasAttribute('data-rates')) {
       openRatings(t.getAttribute('data-rates'));
@@ -1588,8 +1490,6 @@
       var rid = t.getAttribute('data-edit-review');
       var rv = S.reviews.filter(function (x) { return x.id === rid; })[0];
       if (rv) openReviewView(rv);
-    } else if (t.hasAttribute('data-add-review')) {
-      openReviewForm();
     } else if (t.hasAttribute('data-edit')) {
       var id = t.getAttribute('data-edit');
       var d = S.dishes.filter(function (x) { return x.id === id; })[0];
