@@ -16,11 +16,15 @@ function json(body: unknown, status = 200) {
 }
 
 const PROMPT =
-  "This image is a screenshot of a single Google Maps review, usually in Hebrew. " +
-  "Extract: author = the reviewer's display name exactly as written; " +
-  "stars = the number of filled stars (1-5); " +
-  "text = the full review text exactly as written, keeping line breaks and emojis, " +
-  "without the name, date, stars, 'Local Guide' labels, owner replies or buttons. " +
+  "This image is a screenshot of a single Google Maps review of an Israeli food truck. " +
+  "Extract three fields and return them as JSON. " +
+  "author = the reviewer's display name exactly as written in the image (do not translate or transliterate names). " +
+  "stars = the number of filled stars (1-5). " +
+  "text = the review text, WRITTEN IN HEBREW. " +
+  "If the review is written in Hebrew, copy it exactly, word for word, keeping line breaks and emojis; do not rephrase. " +
+  "If it is written in any other language (English, Arabic, Russian, etc.), translate it into natural, fluent Hebrew. " +
+  "The output text must always be Hebrew, never Arabic or any other language. " +
+  "Do not include the name, date, stars, 'Local Guide' labels, owner replies or buttons in the text. " +
   "If something is not visible, return an empty string (or 0 for stars).";
 
 const SCHEMA = {
@@ -47,7 +51,7 @@ async function isOwner(auth: string): Promise<boolean> {
 }
 
 // כל ניסיון מוגבל בזמן, כדי שלא נחכה דקה שלמה כש-Gemini עמוס
-async function askGemini(key: string, model: string, mime: string, data: string, ms: number) {
+async function askGemini(key: string, model: string, mime: string, data: string, ms: number, prompt = PROMPT, think = true) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), ms);
   try {
@@ -58,18 +62,23 @@ async function askGemini(key: string, model: string, mime: string, data: string,
         signal: ctl.signal,
         headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ inline_data: { mime_type: mime, data } }, { text: PROMPT }] }],
+          contents: [{ parts: [{ inline_data: { mime_type: mime, data } }, { text: prompt }] }],
           generationConfig: {
             temperature: 0,
             responseMimeType: "application/json",
             responseSchema: SCHEMA,
-            // בלי "חשיבה" בדגמי 2.5: מהיר הרבה יותר, ומספיק לקריאת טקסט
-            ...(model.startsWith("gemini-2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+            // מינימום "חשיבה": מהיר הרבה יותר, ומספיק לקריאת טקסט מתמונה
+            ...(!think ? {} : model.startsWith("gemini-2.5") ? { thinkingConfig: { thinkingBudget: 0 } }
+              : /^gemini-(3|flash)/.test(model) ? { thinkingConfig: { thinkingLevel: "minimal" } } : {}),
           },
         }),
       },
     );
     const body = await r.json().catch(() => ({}));
+    if (think && r.status === 400 && /thinking/i.test(JSON.stringify(body))) {
+      clearTimeout(timer);
+      return askGemini(key, model, mime, data, ms, prompt, false); // הדגם לא מכיר את ההגדרה: בלעדיה
+    }
     return { ok: r.ok, status: r.status, body };
   } catch {
     return { ok: false, status: 504, body: { error: "timeout " + model } };
@@ -112,10 +121,12 @@ Deno.serve(async (req) => {
   const RETRY = [404, 429, 500, 503, 504];
 
   let last = { ok: false, status: 0, body: {} as Record<string, unknown> };
+  let used = "";
   for (const model of models) {
+    used = model;
     const left = 45000 - (Date.now() - started);
     if (left < 4000) break;
-    last = await askGemini(key, model, mime, data, Math.min(18000, left));
+    last = await askGemini(key, model, mime, data, Math.min(20000, left));
     if (last.ok) break;
     if (last.status === 503 && Date.now() - started < 30000) {
       // עומס רגעי: ניסיון אחד נוסף אחרי הפסקה קצרה
@@ -134,11 +145,22 @@ Deno.serve(async (req) => {
     return json({ error: code }, 502);
   }
 
+  // deno-lint-ignore no-explicit-any
+  const parse = (body: any) => JSON.parse(body.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "{}");
+  const count = (t: string, re: RegExp) => (t.match(re) || []).length;
+  const notHebrew = (t: string) => count(t, /[\u0600-\u06FF]/g) > count(t, /[\u0590-\u05FF]/g) ||
+    (count(t, /[\u0590-\u05FF]/g) === 0 && /[A-Za-z\u0400-\u04FF]{3}/.test(t));
+
   try {
-    // deno-lint-ignore no-explicit-any
-    const b = last.body as any;
-    const txt = b.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "{}";
-    const out = JSON.parse(txt);
+    let out = parse(last.body);
+    // אם הטקסט חזר לא בעברית (למשל בערבית), מבקשים פעם אחת נוספת במפורש בעברית
+    if (notHebrew(String(out.text || "")) && Date.now() - started < 40000) {
+      const again = await askGemini(key, used, mime, data, 15000,
+        PROMPT + " IMPORTANT: your previous answer was not in Hebrew. The 'text' field MUST be in Hebrew (עברית) only.");
+      if (again.ok) {
+        try { const o2 = parse(again.body); if (String(o2.text || "").trim()) out = o2; } catch { /* נשארים עם התשובה הראשונה */ }
+      }
+    }
     const stars = Math.round(Number(out.stars));
     return json({
       author: String(out.author || "").trim().slice(0, 60),
