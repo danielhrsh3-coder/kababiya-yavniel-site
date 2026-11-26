@@ -505,10 +505,10 @@
     adminAssets = new Promise(function (resolve, reject) {
       var link = doc.createElement('link');
       link.rel = 'stylesheet';
-      link.href = 'admin.css?v=20261126d';
+      link.href = 'admin.css?v=20261126e';
       doc.head.appendChild(link);
       var s = doc.createElement('script');
-      s.src = 'admin.js?v=20261126d';
+      s.src = 'admin.js?v=20261126e';
       s.onload = resolve;
       s.onerror = function () { adminAssets = null; reject(new Error('admin.js')); };
       doc.body.appendChild(s);

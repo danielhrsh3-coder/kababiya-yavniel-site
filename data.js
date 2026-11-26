@@ -410,7 +410,7 @@
       });
     }).catch(function (e) {
       var m = String(e && e.message || '');
-      var code = /no_key/.test(m) ? 'no_key' : /quota/.test(m) ? 'quota' : /bad_key/.test(m) ? 'bad_key'
+      var code = /no_key/.test(m) ? 'no_key' : /quota/.test(m) ? 'quota' : /busy/.test(m) ? 'busy' : /bad_key/.test(m) ? 'bad_key'
         : /not_owner/.test(m) ? 'not_owner' : /unreadable/.test(m) ? 'unreadable' : 'network';
       var err = new Error(code); err.code = code; if (e && e.auth) err.auth = true;
       throw err;

@@ -46,20 +46,36 @@ async function isOwner(auth: string): Promise<boolean> {
   return (await r.json()) === true;
 }
 
-async function askGemini(key: string, model: string, mime: string, data: string) {
-  const r = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
-    {
-      method: "POST",
-      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ inline_data: { mime_type: mime, data } }, { text: PROMPT }] }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: SCHEMA },
-      }),
-    },
-  );
-  const body = await r.json().catch(() => ({}));
-  return { ok: r.ok, status: r.status, body };
+// כל ניסיון מוגבל בזמן, כדי שלא נחכה דקה שלמה כש-Gemini עמוס
+async function askGemini(key: string, model: string, mime: string, data: string, ms: number) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
+      {
+        method: "POST",
+        signal: ctl.signal,
+        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ inline_data: { mime_type: mime, data } }, { text: PROMPT }] }],
+          generationConfig: {
+            temperature: 0,
+            responseMimeType: "application/json",
+            responseSchema: SCHEMA,
+            // בלי "חשיבה" בדגמי 2.5: מהיר הרבה יותר, ומספיק לקריאת טקסט
+            ...(model.startsWith("gemini-2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+          },
+        }),
+      },
+    );
+    const body = await r.json().catch(() => ({}));
+    return { ok: r.ok, status: r.status, body };
+  } catch {
+    return { ok: false, status: 504, body: { error: "timeout " + model } };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -88,17 +104,24 @@ Deno.serve(async (req) => {
   const mime = /^image\/(jpeg|png|webp)$/.test(String(input.mime)) ? String(input.mime) : "image/jpeg";
   if (!data || data.length > 8_000_000) return json({ error: "bad_image" }, 400);
 
-  const models = [Deno.env.get("GEMINI_MODEL"), "gemini-2.5-flash", "gemini-flash-latest"]
+  // אם מודל עמוס / איטי / לא קיים, עוברים למודל הבא. סה"כ עד כ-45 שניות.
+  const models = [Deno.env.get("GEMINI_MODEL"), "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"]
     .filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
+  const started = Date.now();
+  const RETRY = [404, 429, 500, 503, 504];
 
   let last = { ok: false, status: 0, body: {} as Record<string, unknown> };
   for (const model of models) {
-    last = await askGemini(key, model, mime, data);
+    const left = 45000 - (Date.now() - started);
+    if (left < 4000) break;
+    last = await askGemini(key, model, mime, data, Math.min(18000, left));
     if (last.ok) break;
-    if (last.status !== 404) break; // רק מודל שלא קיים עובר לבא בתור
+    console.error("gemini", model, last.status, JSON.stringify(last.body).slice(0, 300));
+    if (!RETRY.includes(last.status)) break;
   }
   if (!last.ok) {
-    const code = last.status === 429 ? "quota" : (last.status === 400 || last.status === 403) ? "bad_key" : "gemini";
+    const code = last.status === 429 ? "quota" : (last.status === 400 || last.status === 403) ? "bad_key"
+      : [500, 503, 504].includes(last.status) ? "busy" : "gemini";
     console.error("gemini error", last.status, JSON.stringify(last.body).slice(0, 500));
     return json({ error: code }, 502);
   }
